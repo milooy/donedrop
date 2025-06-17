@@ -35,32 +35,37 @@ const colorStyles = {
   yellow: "border-yellow-300 bg-yellow-100",
   pink: "border-pink-300 bg-pink-100",
   blue: "border-blue-300 bg-blue-100",
-};
+} as const;
 
-// 로컬스토리지 유틸리티 함수들
-const saveToLocalStorage = (key: string, data: unknown) => {
-  try {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(key, JSON.stringify(data));
+// 로컬스토리지 훅
+const useLocalStorage = <T,>(key: string, defaultValue: T) => {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : defaultValue;
+      }
+      return defaultValue;
+    } catch (error) {
+      console.error(`Failed to load ${key} from localStorage:`, error);
+      return defaultValue;
     }
-  } catch (error) {
-    console.error("Failed to save to localStorage:", error);
-  }
-};
+  });
 
-const loadFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
-  try {
-    if (typeof window !== "undefined") {
-      const item = localStorage.getItem(key);
-      return item ? (JSON.parse(item) as T) : defaultValue;
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+    } catch (error) {
+      console.error(`Failed to save ${key} to localStorage:`, error);
     }
-    return defaultValue;
-  } catch (error) {
-    console.error("Failed to load from localStorage:", error);
-    return defaultValue;
-  }
+  }, [key, value]);
+
+  return [value, setValue] as const;
 };
 
+// 컴포넌트들
 const ColorPalette = ({
   selectedColor,
   onColorSelect,
@@ -125,9 +130,7 @@ const DroppableArea = ({
   className?: string;
   style?: React.CSSProperties;
 }) => {
-  const { isOver, setNodeRef } = useDroppable({
-    id,
-  });
+  const { isOver, setNodeRef } = useDroppable({ id });
 
   return (
     <div
@@ -142,103 +145,267 @@ const DroppableArea = ({
   );
 };
 
+// 포스트잇 입력 컴포넌트
+const PostItInput = ({
+  selectedColor,
+  onColorSelect,
+  onAddTodo,
+}: {
+  selectedColor: PostItColor;
+  onColorSelect: (color: PostItColor) => void;
+  onAddTodo: (text: string, color: PostItColor) => void;
+}) => (
+  <div
+    className={`w-32 h-32 border-2 ${colorStyles[selectedColor]} p-2 shadow-md transform hover:scale-105 transition-transform`}
+  >
+    <ColorPalette selectedColor={selectedColor} onColorSelect={onColorSelect} />
+    <input
+      type="text"
+      placeholder="할일 입력"
+      className="w-full text-xs bg-transparent"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+          const text = e.currentTarget.value;
+          if (text.trim()) {
+            onAddTodo(text, selectedColor);
+            e.currentTarget.value = "";
+          }
+        }
+      }}
+    />
+  </div>
+);
+
+// 포스트잇 아이템 컴포넌트
+const PostItItem = ({
+  todo,
+  onComplete,
+  onMoveToInbox,
+  onDelete,
+}: {
+  todo: Todo;
+  onComplete: () => void;
+  onMoveToInbox: () => void;
+  onDelete: () => void;
+}) => (
+  <DraggablePostIt todo={todo}>
+    <div
+      className={`w-32 h-32 border-2 ${
+        colorStyles[todo.color]
+      } p-2 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform`}
+    >
+      <div className="text-sm">{todo.text}</div>
+      <div className="flex gap-1 mt-2">
+        <button
+          className="text-xs bg-red-200 px-2 py-1 rounded"
+          onClick={onComplete}
+        >
+          완료
+        </button>
+        <button
+          className="text-xs bg-orange-200 px-2 py-1 rounded"
+          onClick={onMoveToInbox}
+        >
+          ↓인박스
+        </button>
+        <button
+          className="text-xs bg-gray-200 px-2 py-1 rounded"
+          onClick={onDelete}
+        >
+          삭제
+        </button>
+      </div>
+    </div>
+  </DraggablePostIt>
+);
+
+// 인박스 아이템 컴포넌트
+const InboxItem = ({
+  todo,
+  onMoveToMain,
+  onDelete,
+}: {
+  todo: Todo;
+  onMoveToMain: () => void;
+  onDelete: () => void;
+}) => (
+  <DraggablePostIt todo={todo}>
+    <div
+      className={`w-32 h-32 border-2 ${
+        colorStyles[todo.color]
+      } p-2 flex-shrink-0 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform`}
+    >
+      <div className="text-sm">{todo.text}</div>
+      <button
+        className="mt-2 text-xs bg-green-200 px-2 py-1 rounded mr-1"
+        onClick={onMoveToMain}
+      >
+        ↑메인
+      </button>
+      <button
+        className="mt-2 text-xs bg-gray-200 px-2 py-1 rounded"
+        onClick={onDelete}
+      >
+        삭제
+      </button>
+    </div>
+  </DraggablePostIt>
+);
+
+// 유리병 컴포넌트
+const GlassJar = ({
+  completedTodos,
+  completedCount,
+  onClick,
+}: {
+  completedTodos: Todo[];
+  completedCount: number;
+  onClick: () => void;
+}) => (
+  <div className="w-80 p-8 bg-white flex items-center justify-center">
+    <DroppableArea id="glass-jar" className="w-48 h-80">
+      <div
+        className="w-full h-full relative cursor-pointer transition-all duration-300"
+        style={{
+          background: `linear-gradient(135deg, 
+            rgba(255, 255, 255, 0.9) 0%, 
+            rgba(248, 250, 252, 0.7) 30%, 
+            rgba(241, 245, 249, 0.5) 70%, 
+            rgba(226, 232, 240, 0.6) 100%)`,
+          borderRadius: "60px 60px 20px 20px",
+          border: "3px solid rgba(148, 163, 184, 0.3)",
+          boxShadow: `
+            inset 2px 2px 10px rgba(255, 255, 255, 0.8),
+            inset -2px -2px 10px rgba(148, 163, 184, 0.2),
+            0 4px 20px rgba(148, 163, 184, 0.15)
+          `,
+        }}
+        onClick={onClick}
+      >
+        <div className="absolute top-6 left-1/2 transform -translate-x-1/2">
+          <div className="text-lg font-bold text-gray-600">
+            {completedCount}
+          </div>
+        </div>
+        <div className="absolute bottom-4 left-4 right-4 top-16 flex flex-wrap content-end gap-1 overflow-hidden">
+          <TooltipProvider>
+            {completedTodos.map((todo, i) => (
+              <Tooltip key={todo.id}>
+                <TooltipTrigger asChild>
+                  <div
+                    className={`w-4 h-4 ${
+                      colorStyles[todo.color]
+                    } border border-gray-300 rounded-sm transform transition-transform hover:scale-110 cursor-pointer`}
+                    style={{
+                      transform: `rotate(${((i * 17) % 45) - 22}deg)`,
+                      zIndex: i,
+                    }}
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-3 h-3 ${
+                        colorStyles[todo.color]
+                      } border border-gray-400 rounded-sm`}
+                    />
+                    <span className="text-sm font-medium">{todo.text}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    완료된 할일
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </TooltipProvider>
+        </div>
+      </div>
+    </DroppableArea>
+  </div>
+);
+
 export default function Home() {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [inboxTodos, setInboxTodos] = useState<Todo[]>([]);
-  const [completedTodos, setCompletedTodos] = useState<Todo[]>([]);
-  const [completedCount, setCompletedCount] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedColor, setSelectedColor] = useState<PostItColor>("yellow");
+  const [todos, setTodos] = useLocalStorage<Todo[]>("donedrop-todos", []);
+  const [inboxTodos, setInboxTodos] = useLocalStorage<Todo[]>(
+    "donedrop-inbox-todos",
+    []
+  );
+  const [completedTodos, setCompletedTodos] = useLocalStorage<Todo[]>(
+    "donedrop-completed-todos",
+    []
+  );
+  const [selectedColor, setSelectedColor] = useLocalStorage<PostItColor>(
+    "donedrop-selected-color",
+    "yellow"
+  );
   const [inboxSelectedColor, setInboxSelectedColor] =
-    useState<PostItColor>("yellow");
+    useLocalStorage<PostItColor>("donedrop-inbox-selected-color", "yellow");
+
   const [activeTodo, setActiveTodo] = useState<Todo | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 로컬스토리지에서 데이터 로드
-  useEffect(() => {
-    const loadedTodos = loadFromLocalStorage<Todo[]>("donedrop-todos", []);
-    const loadedInboxTodos = loadFromLocalStorage<Todo[]>(
-      "donedrop-inbox-todos",
-      []
-    );
-    const loadedCompletedTodos = loadFromLocalStorage<Todo[]>(
-      "donedrop-completed-todos",
-      []
-    );
-    const loadedSelectedColor = loadFromLocalStorage<PostItColor>(
-      "donedrop-selected-color",
-      "yellow"
-    );
-    const loadedInboxSelectedColor = loadFromLocalStorage<PostItColor>(
-      "donedrop-inbox-selected-color",
-      "yellow"
-    );
+  const completedCount = completedTodos.length;
 
-    setTodos(loadedTodos);
-    setInboxTodos(loadedInboxTodos);
-    setCompletedTodos(loadedCompletedTodos);
-    setCompletedCount(loadedCompletedTodos.length);
-    setSelectedColor(loadedSelectedColor);
-    setInboxSelectedColor(loadedInboxSelectedColor);
-  }, []);
-
-  // 데이터 변경 시 로컬스토리지에 자동 저장
-  useEffect(() => {
-    saveToLocalStorage("donedrop-todos", todos);
-  }, [todos]);
-
-  useEffect(() => {
-    saveToLocalStorage("donedrop-inbox-todos", inboxTodos);
-  }, [inboxTodos]);
-
-  useEffect(() => {
-    saveToLocalStorage("donedrop-completed-todos", completedTodos);
-  }, [completedTodos]);
-
-  useEffect(() => {
-    saveToLocalStorage("donedrop-selected-color", selectedColor);
-  }, [selectedColor]);
-
-  useEffect(() => {
-    saveToLocalStorage("donedrop-inbox-selected-color", inboxSelectedColor);
-  }, [inboxSelectedColor]);
-
+  // 드래그 앤 드롭 핸들러
   const handleDragStart = (event: DragStartEvent) => {
-    const draggedTodo = event.active.data.current?.todo as Todo;
-    setActiveTodo(draggedTodo);
+    setActiveTodo(event.active.data.current?.todo as Todo);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-
     setActiveTodo(null);
 
     if (!over) return;
-
     const draggedTodo = active.data.current?.todo as Todo;
     if (!draggedTodo) return;
 
-    // 드래그된 아이템이 어디서 왔는지 확인
     const isFromMain = todos.some((t) => t.id === draggedTodo.id);
     const isFromInbox = inboxTodos.some((t) => t.id === draggedTodo.id);
 
     if (over.id === "main-board" && isFromInbox) {
-      // 인박스 → 메인 보드
       setInboxTodos((prev) => prev.filter((t) => t.id !== draggedTodo.id));
       setTodos((prev) => [...prev, draggedTodo]);
     } else if (over.id === "inbox" && isFromMain) {
-      // 메인 보드 → 인박스
       setTodos((prev) => prev.filter((t) => t.id !== draggedTodo.id));
       setInboxTodos((prev) => [...prev, draggedTodo]);
     } else if (over.id === "glass-jar" && (isFromMain || isFromInbox)) {
-      // 유리병으로 완료 처리
-      if (isFromMain) {
+      if (isFromMain)
         setTodos((prev) => prev.filter((t) => t.id !== draggedTodo.id));
-      } else {
-        setInboxTodos((prev) => prev.filter((t) => t.id !== draggedTodo.id));
-      }
+      else setInboxTodos((prev) => prev.filter((t) => t.id !== draggedTodo.id));
       setCompletedTodos((prev) => [...prev, draggedTodo]);
-      setCompletedCount((prev) => prev + 1);
     }
+  };
+
+  // 할일 액션 핸들러
+  const addTodo = (text: string, color: PostItColor) => {
+    setTodos((prev) => [...prev, { id: Date.now(), text, color }]);
+  };
+
+  const addInboxTodo = (text: string, color: PostItColor) => {
+    setInboxTodos((prev) => [...prev, { id: Date.now(), text, color }]);
+  };
+
+  const completeTodo = (todo: Todo) => {
+    setTodos((prev) => prev.filter((t) => t.id !== todo.id));
+    setCompletedTodos((prev) => [...prev, todo]);
+  };
+
+  const moveToInbox = (todo: Todo) => {
+    setTodos((prev) => prev.filter((t) => t.id !== todo.id));
+    setInboxTodos((prev) => [...prev, todo]);
+  };
+
+  const moveToMain = (todo: Todo) => {
+    setInboxTodos((prev) => prev.filter((t) => t.id !== todo.id));
+    setTodos((prev) => [...prev, todo]);
+  };
+
+  const deleteTodo = (id: number) => {
+    setTodos((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const deleteInboxTodo = (id: number) => {
+    setInboxTodos((prev) => prev.filter((t) => t.id !== id));
   };
 
   return (
@@ -258,218 +425,62 @@ export default function Home() {
           </div>
         )}
       </DragOverlay>
+
       <div className="min-h-screen flex flex-col bg-gray-50">
-        {/* 상단 영역 */}
         <div className="flex flex-1">
-          {/* 왼쪽-가운데: 메모보드 영역 */}
+          {/* 메인 보드 */}
           <DroppableArea id="main-board" className="flex-1 p-8 bg-white">
             <div className="p-6">
               <div className="flex flex-wrap gap-6">
-                {/* 새 할일 추가 포스트잇 */}
-                <div
-                  className={`w-32 h-32 border-2 ${colorStyles[selectedColor]} p-2 shadow-md transform hover:scale-105 transition-transform`}
-                >
-                  <ColorPalette
-                    selectedColor={selectedColor}
-                    onColorSelect={setSelectedColor}
-                  />
-                  <input
-                    type="text"
-                    placeholder="할일 입력"
-                    className="w-full text-xs bg-transparent"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                        const text = e.currentTarget.value;
-                        if (text.trim()) {
-                          setTodos([
-                            ...todos,
-                            { id: Date.now(), text, color: selectedColor },
-                          ]);
-                          e.currentTarget.value = "";
-                        }
-                      }
-                    }}
-                  />
-                </div>
-                {/* 기존 할일들 */}
+                <PostItInput
+                  selectedColor={selectedColor}
+                  onColorSelect={setSelectedColor}
+                  onAddTodo={addTodo}
+                />
                 {todos.map((todo) => (
-                  <DraggablePostIt key={todo.id} todo={todo}>
-                    <div
-                      className={`w-32 h-32 border-2 ${
-                        colorStyles[todo.color]
-                      } p-2 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform`}
-                    >
-                      <div className="text-sm">{todo.text}</div>
-                      <div className="flex gap-1 mt-2">
-                        <button
-                          className="text-xs bg-red-200 px-2 py-1 rounded"
-                          onClick={() => {
-                            setTodos(todos.filter((t) => t.id !== todo.id));
-                            setCompletedTodos([...completedTodos, todo]);
-                            setCompletedCount((prev) => prev + 1);
-                          }}
-                        >
-                          완료
-                        </button>
-                        <button
-                          className="text-xs bg-orange-200 px-2 py-1 rounded"
-                          onClick={() => {
-                            setTodos(todos.filter((t) => t.id !== todo.id));
-                            setInboxTodos([...inboxTodos, todo]);
-                          }}
-                        >
-                          ↓인박스
-                        </button>
-                        <button
-                          className="text-xs bg-gray-200 px-2 py-1 rounded"
-                          onClick={() => {
-                            setTodos(todos.filter((t) => t.id !== todo.id));
-                          }}
-                        >
-                          삭제
-                        </button>
-                      </div>
-                    </div>
-                  </DraggablePostIt>
+                  <PostItItem
+                    key={todo.id}
+                    todo={todo}
+                    onComplete={() => completeTodo(todo)}
+                    onMoveToInbox={() => moveToInbox(todo)}
+                    onDelete={() => deleteTodo(todo.id)}
+                  />
                 ))}
               </div>
             </div>
           </DroppableArea>
 
-          {/* 오른쪽: 유리병 영역 */}
-          <div className="w-80 p-8 bg-white flex items-center justify-center">
-            <DroppableArea id="glass-jar" className="w-48 h-80">
-              <div
-                className="w-full h-full relative cursor-pointer transition-all duration-300"
-                style={{
-                  background: `linear-gradient(135deg, 
-                    rgba(255, 255, 255, 0.9) 0%, 
-                    rgba(248, 250, 252, 0.7) 30%, 
-                    rgba(241, 245, 249, 0.5) 70%, 
-                    rgba(226, 232, 240, 0.6) 100%)`,
-                  borderRadius: "60px 60px 20px 20px",
-                  border: "3px solid rgba(148, 163, 184, 0.3)",
-                  boxShadow: `
-                    inset 2px 2px 10px rgba(255, 255, 255, 0.8),
-                    inset -2px -2px 10px rgba(148, 163, 184, 0.2),
-                    0 4px 20px rgba(148, 163, 184, 0.15)
-                  `,
-                }}
-                onClick={() => setIsModalOpen(true)}
-              >
-                <div className="absolute top-6 left-1/2 transform -translate-x-1/2">
-                  <div className="text-lg font-bold text-gray-600">
-                    {completedCount}
-                  </div>
-                </div>
-                {/* 완료된 할일들을 색깔별 작은 포스트잇으로 표시 */}
-                <div className="absolute bottom-4 left-4 right-4 top-16 flex flex-wrap content-end gap-1 overflow-hidden">
-                  <TooltipProvider>
-                    {completedTodos.map((todo, i) => (
-                      <Tooltip key={todo.id}>
-                        <TooltipTrigger asChild>
-                          <div
-                            className={`w-4 h-4 ${
-                              colorStyles[todo.color]
-                            } border border-gray-300 rounded-sm transform transition-transform hover:scale-110 cursor-pointer`}
-                            style={{
-                              transform: `rotate(${((i * 17) % 45) - 22}deg)`,
-                              zIndex: i,
-                            }}
-                          ></div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-3 h-3 ${
-                                colorStyles[todo.color]
-                              } border border-gray-400 rounded-sm`}
-                            ></div>
-                            <span className="text-sm font-medium">
-                              {todo.text}
-                            </span>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            완료된 할일
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </TooltipProvider>
-                </div>
-              </div>
-            </DroppableArea>
-          </div>
+          {/* 유리병 */}
+          <GlassJar
+            completedTodos={completedTodos}
+            completedCount={completedCount}
+            onClick={() => setIsModalOpen(true)}
+          />
         </div>
 
-        {/* 하단: 인박스 영역 */}
-        <DroppableArea
-          id="inbox"
-          className="h-48 p-6 bg-amber-800"
-        >
+        {/* 인박스 */}
+        <DroppableArea id="inbox" className="h-48 p-6 bg-amber-800">
           <div
             className="flex gap-4 overflow-x-auto pb-4"
             style={{ overflowClipMargin: "unset" }}
           >
-            {/* 새 인박스 할일 추가 포스트잇 */}
-            <div
-              className={`w-32 h-32 border-2 ${colorStyles[inboxSelectedColor]} p-2 flex-shrink-0 shadow-md transform hover:scale-105 transition-transform`}
-            >
-              <ColorPalette
-                selectedColor={inboxSelectedColor}
-                onColorSelect={setInboxSelectedColor}
-              />
-              <input
-                type="text"
-                placeholder="예정 할일 입력"
-                className="w-full text-xs bg-transparent"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                    const text = e.currentTarget.value;
-                    if (text.trim()) {
-                      setInboxTodos([
-                        ...inboxTodos,
-                        { id: Date.now(), text, color: inboxSelectedColor },
-                      ]);
-                      e.currentTarget.value = "";
-                    }
-                  }
-                }}
-              />
-            </div>
-            {/* 인박스 할일들 */}
+            <PostItInput
+              selectedColor={inboxSelectedColor}
+              onColorSelect={setInboxSelectedColor}
+              onAddTodo={addInboxTodo}
+            />
             {inboxTodos.map((todo) => (
-              <DraggablePostIt key={todo.id} todo={todo}>
-                <div
-                  className={`w-32 h-32 border-2 ${
-                    colorStyles[todo.color]
-                  } p-2 flex-shrink-0 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform`}
-                >
-                  <div className="text-sm">{todo.text}</div>
-                  <button
-                    className="mt-2 text-xs bg-green-200 px-2 py-1 rounded mr-1"
-                    onClick={() => {
-                      setInboxTodos(inboxTodos.filter((t) => t.id !== todo.id));
-                      setTodos([...todos, todo]);
-                    }}
-                  >
-                    ↑메인
-                  </button>
-                  <button
-                    className="mt-2 text-xs bg-gray-200 px-2 py-1 rounded"
-                    onClick={() => {
-                      setInboxTodos(inboxTodos.filter((t) => t.id !== todo.id));
-                    }}
-                  >
-                    삭제
-                  </button>
-                </div>
-              </DraggablePostIt>
+              <InboxItem
+                key={todo.id}
+                todo={todo}
+                onMoveToMain={() => moveToMain(todo)}
+                onDelete={() => deleteInboxTodo(todo.id)}
+              />
             ))}
           </div>
         </DroppableArea>
 
-        {/* 유리병 모달 */}
+        {/* 완료된 할일 모달 */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
