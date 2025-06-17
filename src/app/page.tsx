@@ -118,10 +118,12 @@ const DroppableArea = ({
   id,
   children,
   className,
+  style,
 }: {
   id: string;
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }) => {
   const { isOver, setNodeRef } = useDroppable({
     id,
@@ -133,6 +135,7 @@ const DroppableArea = ({
       className={`${className} ${
         isOver ? "bg-opacity-75 ring-2 ring-blue-400" : ""
       }`}
+      style={style}
     >
       {children}
     </div>
@@ -255,95 +258,109 @@ export default function Home() {
           </div>
         )}
       </DragOverlay>
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-gray-50">
         {/* 상단 영역 */}
         <div className="flex flex-1">
-          {/* 왼쪽-가운데: 포스트잇 영역 */}
-          <DroppableArea id="main-board" className="flex-1 p-8">
-            <h1 className="text-2xl font-bold mb-8">할일 포스트잇</h1>
-            <div className="grid grid-cols-3 gap-4">
-              {/* 새 할일 추가 포스트잇 */}
-              <div
-                className={`w-32 h-32 border-2 ${colorStyles[selectedColor]} p-2`}
-              >
-                <ColorPalette
-                  selectedColor={selectedColor}
-                  onColorSelect={setSelectedColor}
-                />
-                <input
-                  type="text"
-                  placeholder="할일 입력"
-                  className="w-full text-xs bg-transparent"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                      const text = e.currentTarget.value;
-                      if (text.trim()) {
-                        setTodos([
-                          ...todos,
-                          { id: Date.now(), text, color: selectedColor },
-                        ]);
-                        e.currentTarget.value = "";
+          {/* 왼쪽-가운데: 메모보드 영역 */}
+          <DroppableArea id="main-board" className="flex-1 p-8 bg-white">
+            <div className="p-6">
+              <div className="flex flex-wrap gap-6">
+                {/* 새 할일 추가 포스트잇 */}
+                <div
+                  className={`w-32 h-32 border-2 ${colorStyles[selectedColor]} p-2 shadow-md transform hover:scale-105 transition-transform`}
+                >
+                  <ColorPalette
+                    selectedColor={selectedColor}
+                    onColorSelect={setSelectedColor}
+                  />
+                  <input
+                    type="text"
+                    placeholder="할일 입력"
+                    className="w-full text-xs bg-transparent"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                        const text = e.currentTarget.value;
+                        if (text.trim()) {
+                          setTodos([
+                            ...todos,
+                            { id: Date.now(), text, color: selectedColor },
+                          ]);
+                          e.currentTarget.value = "";
+                        }
                       }
-                    }
-                  }}
-                />
-              </div>
-              {/* 기존 할일들 */}
-              {todos.map((todo) => (
-                <DraggablePostIt key={todo.id} todo={todo}>
-                  <div
-                    className={`w-32 h-32 border-2 ${
-                      colorStyles[todo.color]
-                    } p-2 cursor-grab active:cursor-grabbing`}
-                  >
-                    <div className="text-sm">{todo.text}</div>
-                    <div className="flex gap-1 mt-2">
-                      <button
-                        className="text-xs bg-red-200 px-2 py-1 rounded"
-                        onClick={() => {
-                          setTodos(todos.filter((t) => t.id !== todo.id));
-                          setCompletedTodos([...completedTodos, todo]);
-                          setCompletedCount((prev) => prev + 1);
-                        }}
-                      >
-                        완료
-                      </button>
-                      <button
-                        className="text-xs bg-orange-200 px-2 py-1 rounded"
-                        onClick={() => {
-                          setTodos(todos.filter((t) => t.id !== todo.id));
-                          setInboxTodos([...inboxTodos, todo]);
-                        }}
-                      >
-                        ↓인박스
-                      </button>
-                      <button
-                        className="text-xs bg-gray-200 px-2 py-1 rounded"
-                        onClick={() => {
-                          setTodos(todos.filter((t) => t.id !== todo.id));
-                        }}
-                      >
-                        삭제
-                      </button>
+                    }}
+                  />
+                </div>
+                {/* 기존 할일들 */}
+                {todos.map((todo) => (
+                  <DraggablePostIt key={todo.id} todo={todo}>
+                    <div
+                      className={`w-32 h-32 border-2 ${
+                        colorStyles[todo.color]
+                      } p-2 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform`}
+                    >
+                      <div className="text-sm">{todo.text}</div>
+                      <div className="flex gap-1 mt-2">
+                        <button
+                          className="text-xs bg-red-200 px-2 py-1 rounded"
+                          onClick={() => {
+                            setTodos(todos.filter((t) => t.id !== todo.id));
+                            setCompletedTodos([...completedTodos, todo]);
+                            setCompletedCount((prev) => prev + 1);
+                          }}
+                        >
+                          완료
+                        </button>
+                        <button
+                          className="text-xs bg-orange-200 px-2 py-1 rounded"
+                          onClick={() => {
+                            setTodos(todos.filter((t) => t.id !== todo.id));
+                            setInboxTodos([...inboxTodos, todo]);
+                          }}
+                        >
+                          ↓인박스
+                        </button>
+                        <button
+                          className="text-xs bg-gray-200 px-2 py-1 rounded"
+                          onClick={() => {
+                            setTodos(todos.filter((t) => t.id !== todo.id));
+                          }}
+                        >
+                          삭제
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </DraggablePostIt>
-              ))}
+                  </DraggablePostIt>
+                ))}
+              </div>
             </div>
           </DroppableArea>
 
           {/* 오른쪽: 유리병 영역 */}
-          <div className="w-80 p-8 bg-blue-50">
-            <h2 className="text-xl font-bold mb-4">완료된 할일</h2>
-            <DroppableArea id="glass-jar" className="w-full h-96">
+          <div className="w-80 p-8 bg-white flex items-center justify-center">
+            <DroppableArea id="glass-jar" className="w-48 h-80">
               <div
-                className="w-full h-full border-8 border-blue-300 bg-blue-50 bg-opacity-30 relative cursor-pointer hover:bg-blue-100 hover:bg-opacity-50 transition-colors rounded-3xl"
+                className="w-full h-full relative cursor-pointer transition-all duration-300"
+                style={{
+                  background: `linear-gradient(135deg, 
+                    rgba(255, 255, 255, 0.9) 0%, 
+                    rgba(248, 250, 252, 0.7) 30%, 
+                    rgba(241, 245, 249, 0.5) 70%, 
+                    rgba(226, 232, 240, 0.6) 100%)`,
+                  borderRadius: "60px 60px 20px 20px",
+                  border: "3px solid rgba(148, 163, 184, 0.3)",
+                  boxShadow: `
+                    inset 2px 2px 10px rgba(255, 255, 255, 0.8),
+                    inset -2px -2px 10px rgba(148, 163, 184, 0.2),
+                    0 4px 20px rgba(148, 163, 184, 0.15)
+                  `,
+                }}
                 onClick={() => setIsModalOpen(true)}
               >
-                <div className="text-center mt-4 text-lg font-semibold text-blue-800">🫙 유리병</div>
-                <div className="absolute top-4 right-4">
-                  <div className="text-2xl font-bold text-blue-800">{completedCount}</div>
-                  <div className="text-sm text-blue-600">완료</div>
+                <div className="absolute top-6 left-1/2 transform -translate-x-1/2">
+                  <div className="text-lg font-bold text-gray-600">
+                    {completedCount}
+                  </div>
                 </div>
                 {/* 완료된 할일들을 색깔별 작은 포스트잇으로 표시 */}
                 <div className="absolute bottom-4 left-4 right-4 top-16 flex flex-wrap content-end gap-1 overflow-hidden">
@@ -351,20 +368,30 @@ export default function Home() {
                     {completedTodos.map((todo, i) => (
                       <Tooltip key={todo.id}>
                         <TooltipTrigger asChild>
-                          <div 
-                            className={`w-4 h-4 ${colorStyles[todo.color]} border border-gray-300 rounded-sm transform transition-transform hover:scale-110 cursor-pointer`}
+                          <div
+                            className={`w-4 h-4 ${
+                              colorStyles[todo.color]
+                            } border border-gray-300 rounded-sm transform transition-transform hover:scale-110 cursor-pointer`}
                             style={{
-                              transform: `rotate(${(i * 17) % 45 - 22}deg)`,
-                              zIndex: i
+                              transform: `rotate(${((i * 17) % 45) - 22}deg)`,
+                              zIndex: i,
                             }}
                           ></div>
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-xs">
                           <div className="flex items-center gap-2">
-                            <div className={`w-3 h-3 ${colorStyles[todo.color]} border border-gray-400 rounded-sm`}></div>
-                            <span className="text-sm font-medium">{todo.text}</span>
+                            <div
+                              className={`w-3 h-3 ${
+                                colorStyles[todo.color]
+                              } border border-gray-400 rounded-sm`}
+                            ></div>
+                            <span className="text-sm font-medium">
+                              {todo.text}
+                            </span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">완료된 할일</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            완료된 할일
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                     ))}
@@ -378,16 +405,15 @@ export default function Home() {
         {/* 하단: 인박스 영역 */}
         <DroppableArea
           id="inbox"
-          className="h-48 bg-amber-100 border-t-4 border-amber-300 p-4"
+          className="h-48 p-6 bg-amber-800"
         >
-          <h2 className="text-xl font-bold mb-4">📥 인박스 (예정된 할일)</h2>
           <div
             className="flex gap-4 overflow-x-auto pb-4"
             style={{ overflowClipMargin: "unset" }}
           >
             {/* 새 인박스 할일 추가 포스트잇 */}
             <div
-              className={`w-32 h-32 border-2 ${colorStyles[inboxSelectedColor]} p-2 flex-shrink-0`}
+              className={`w-32 h-32 border-2 ${colorStyles[inboxSelectedColor]} p-2 flex-shrink-0 shadow-md transform hover:scale-105 transition-transform`}
             >
               <ColorPalette
                 selectedColor={inboxSelectedColor}
@@ -417,7 +443,7 @@ export default function Home() {
                 <div
                   className={`w-32 h-32 border-2 ${
                     colorStyles[todo.color]
-                  } p-2 flex-shrink-0 cursor-grab active:cursor-grabbing`}
+                  } p-2 flex-shrink-0 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform`}
                 >
                   <div className="text-sm">{todo.text}</div>
                   <button
