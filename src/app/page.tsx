@@ -8,6 +8,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   DndContext,
   DragEndEvent,
   DragOverlay,
@@ -327,23 +333,42 @@ export default function Home() {
           </DroppableArea>
 
           {/* 오른쪽: 유리병 영역 */}
-          <div className="w-64 p-8 bg-blue-50">
+          <div className="w-80 p-8 bg-blue-50">
             <h2 className="text-xl font-bold mb-4">완료된 할일</h2>
-            <DroppableArea id="glass-jar" className="w-32 h-48">
+            <DroppableArea id="glass-jar" className="w-full h-96">
               <div
-                className="w-full h-full border-4 border-blue-300 bg-blue-100 relative cursor-pointer hover:bg-blue-200 transition-colors"
+                className="w-full h-full border-8 border-blue-300 bg-blue-50 bg-opacity-30 relative cursor-pointer hover:bg-blue-100 hover:bg-opacity-50 transition-colors rounded-3xl"
                 onClick={() => setIsModalOpen(true)}
               >
-                <div className="text-center mt-2 text-sm">유리병</div>
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-                  <div className="text-lg font-bold">{completedCount}</div>
-                  <div className="text-xs">완료</div>
+                <div className="text-center mt-4 text-lg font-semibold text-blue-800">🫙 유리병</div>
+                <div className="absolute top-4 right-4">
+                  <div className="text-2xl font-bold text-blue-800">{completedCount}</div>
+                  <div className="text-sm text-blue-600">완료</div>
                 </div>
-                {/* 완료된 할일들을 네모로 표시 */}
-                <div className="absolute bottom-8 left-2 right-2 flex flex-wrap gap-1">
-                  {Array.from({ length: completedCount }).map((_, i) => (
-                    <div key={i} className="w-3 h-3 bg-gray-400"></div>
-                  ))}
+                {/* 완료된 할일들을 색깔별 작은 포스트잇으로 표시 */}
+                <div className="absolute bottom-4 left-4 right-4 top-16 flex flex-wrap content-end gap-1 overflow-hidden">
+                  <TooltipProvider>
+                    {completedTodos.map((todo, i) => (
+                      <Tooltip key={todo.id}>
+                        <TooltipTrigger asChild>
+                          <div 
+                            className={`w-4 h-4 ${colorStyles[todo.color]} border border-gray-300 rounded-sm transform transition-transform hover:scale-110 cursor-pointer`}
+                            style={{
+                              transform: `rotate(${(i * 17) % 45 - 22}deg)`,
+                              zIndex: i
+                            }}
+                          ></div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 ${colorStyles[todo.color]} border border-gray-400 rounded-sm`}></div>
+                            <span className="text-sm font-medium">{todo.text}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">완료된 할일</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </TooltipProvider>
                 </div>
               </div>
             </DroppableArea>
