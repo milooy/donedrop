@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Todo {
   id: number;
@@ -10,7 +11,9 @@ interface Todo {
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [inboxTodos, setInboxTodos] = useState<Todo[]>([]);
+  const [completedTodos, setCompletedTodos] = useState<Todo[]>([]);
   const [completedCount, setCompletedCount] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -49,6 +52,7 @@ export default function Home() {
                     className="text-xs bg-red-200 px-2 py-1 rounded"
                     onClick={() => {
                       setTodos(todos.filter((t) => t.id !== todo.id));
+                      setCompletedTodos([...completedTodos, todo]);
                       setCompletedCount((prev) => prev + 1);
                     }}
                   >
@@ -80,7 +84,10 @@ export default function Home() {
         {/* 오른쪽: 유리병 영역 */}
         <div className="w-64 p-8 bg-blue-50">
           <h2 className="text-xl font-bold mb-4">완료된 할일</h2>
-          <div className="w-32 h-48 border-4 border-blue-300 bg-blue-100 relative">
+          <div 
+            className="w-32 h-48 border-4 border-blue-300 bg-blue-100 relative cursor-pointer hover:bg-blue-200 transition-colors"
+            onClick={() => setIsModalOpen(true)}
+          >
             <div className="text-center mt-2 text-sm">유리병</div>
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
               <div className="text-lg font-bold">{completedCount}</div>
@@ -145,6 +152,31 @@ export default function Home() {
           ))}
         </div>
       </div>
+
+      {/* 유리병 모달 */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>🍃 완료된 할일들</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-4 gap-4 p-4">
+            {completedTodos.map((todo) => (
+              <div 
+                key={todo.id} 
+                className="w-32 h-32 border-2 border-green-300 bg-green-100 p-2 relative"
+              >
+                <div className="text-sm">{todo.text}</div>
+                <div className="absolute bottom-2 right-2 text-xs text-green-600">✓</div>
+              </div>
+            ))}
+            {completedTodos.length === 0 && (
+              <div className="col-span-4 text-center py-8 text-gray-500">
+                아직 완료된 할일이 없습니다.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
