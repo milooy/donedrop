@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,30 @@ const colorStyles = {
   yellow: "border-yellow-300 bg-yellow-100",
   pink: "border-pink-300 bg-pink-100",
   blue: "border-blue-300 bg-blue-100",
+};
+
+// 로컬스토리지 유틸리티 함수들
+const saveToLocalStorage = (key: string, data: unknown) => {
+  try {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(key, JSON.stringify(data));
+    }
+  } catch (error) {
+    console.error("Failed to save to localStorage:", error);
+  }
+};
+
+const loadFromLocalStorage = <T,>(key: string, defaultValue: T): T => {
+  try {
+    if (typeof window !== "undefined") {
+      const item = localStorage.getItem(key);
+      return item ? (JSON.parse(item) as T) : defaultValue;
+    }
+    return defaultValue;
+  } catch (error) {
+    console.error("Failed to load from localStorage:", error);
+    return defaultValue;
+  }
 };
 
 const ColorPalette = ({
@@ -119,6 +143,55 @@ export default function Home() {
   const [inboxSelectedColor, setInboxSelectedColor] =
     useState<PostItColor>("yellow");
   const [activeTodo, setActiveTodo] = useState<Todo | null>(null);
+
+  // 로컬스토리지에서 데이터 로드
+  useEffect(() => {
+    const loadedTodos = loadFromLocalStorage<Todo[]>("donedrop-todos", []);
+    const loadedInboxTodos = loadFromLocalStorage<Todo[]>(
+      "donedrop-inbox-todos",
+      []
+    );
+    const loadedCompletedTodos = loadFromLocalStorage<Todo[]>(
+      "donedrop-completed-todos",
+      []
+    );
+    const loadedSelectedColor = loadFromLocalStorage<PostItColor>(
+      "donedrop-selected-color",
+      "yellow"
+    );
+    const loadedInboxSelectedColor = loadFromLocalStorage<PostItColor>(
+      "donedrop-inbox-selected-color",
+      "yellow"
+    );
+
+    setTodos(loadedTodos);
+    setInboxTodos(loadedInboxTodos);
+    setCompletedTodos(loadedCompletedTodos);
+    setCompletedCount(loadedCompletedTodos.length);
+    setSelectedColor(loadedSelectedColor);
+    setInboxSelectedColor(loadedInboxSelectedColor);
+  }, []);
+
+  // 데이터 변경 시 로컬스토리지에 자동 저장
+  useEffect(() => {
+    saveToLocalStorage("donedrop-todos", todos);
+  }, [todos]);
+
+  useEffect(() => {
+    saveToLocalStorage("donedrop-inbox-todos", inboxTodos);
+  }, [inboxTodos]);
+
+  useEffect(() => {
+    saveToLocalStorage("donedrop-completed-todos", completedTodos);
+  }, [completedTodos]);
+
+  useEffect(() => {
+    saveToLocalStorage("donedrop-selected-color", selectedColor);
+  }, [selectedColor]);
+
+  useEffect(() => {
+    saveToLocalStorage("donedrop-inbox-selected-color", inboxSelectedColor);
+  }, [inboxSelectedColor]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const draggedTodo = event.active.data.current?.todo as Todo;
