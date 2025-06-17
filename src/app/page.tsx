@@ -1,12 +1,50 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+type PostItColor = "yellow" | "pink" | "blue";
 
 interface Todo {
   id: number;
   text: string;
+  color: PostItColor;
 }
+
+const colorStyles = {
+  yellow: "border-yellow-300 bg-yellow-100",
+  pink: "border-pink-300 bg-pink-100",
+  blue: "border-blue-300 bg-blue-100",
+};
+
+const ColorPalette = ({
+  selectedColor,
+  onColorSelect,
+}: {
+  selectedColor: PostItColor;
+  onColorSelect: (color: PostItColor) => void;
+}) => {
+  const colors: PostItColor[] = ["yellow", "pink", "blue"];
+
+  return (
+    <div className="flex gap-1 mb-2">
+      {colors.map((color) => (
+        <button
+          key={color}
+          className={`w-4 h-4 rounded-full border-2 ${colorStyles[color]} ${
+            selectedColor === color ? "border-black border-4 shadow-md" : "border-gray-400"
+          }`}
+          onClick={() => onColorSelect(color)}
+        />
+      ))}
+    </div>
+  );
+};
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -14,6 +52,9 @@ export default function Home() {
   const [completedTodos, setCompletedTodos] = useState<Todo[]>([]);
   const [completedCount, setCompletedCount] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedColor, setSelectedColor] = useState<PostItColor>("yellow");
+  const [inboxSelectedColor, setInboxSelectedColor] =
+    useState<PostItColor>("yellow");
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -24,7 +65,11 @@ export default function Home() {
           <h1 className="text-2xl font-bold mb-8">할일 포스트잇</h1>
           <div className="grid grid-cols-3 gap-4">
             {/* 새 할일 추가 포스트잇 */}
-            <div className="w-32 h-32 border-2 border-gray-300 bg-gray-100 p-2">
+            <div className={`w-32 h-32 border-2 ${colorStyles[selectedColor]} p-2`}>
+              <ColorPalette
+                selectedColor={selectedColor}
+                onColorSelect={setSelectedColor}
+              />
               <input
                 type="text"
                 placeholder="할일 입력"
@@ -33,7 +78,10 @@ export default function Home() {
                   if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                     const text = e.currentTarget.value;
                     if (text.trim()) {
-                      setTodos([...todos, { id: Date.now(), text }]);
+                      setTodos([
+                        ...todos,
+                        { id: Date.now(), text, color: selectedColor },
+                      ]);
                       e.currentTarget.value = "";
                     }
                   }
@@ -44,7 +92,7 @@ export default function Home() {
             {todos.map((todo) => (
               <div
                 key={todo.id}
-                className="w-32 h-32 border-2 border-yellow-300 bg-yellow-100 p-2"
+                className={`w-32 h-32 border-2 ${colorStyles[todo.color]} p-2`}
               >
                 <div className="text-sm">{todo.text}</div>
                 <div className="flex gap-1 mt-2">
@@ -84,7 +132,7 @@ export default function Home() {
         {/* 오른쪽: 유리병 영역 */}
         <div className="w-64 p-8 bg-blue-50">
           <h2 className="text-xl font-bold mb-4">완료된 할일</h2>
-          <div 
+          <div
             className="w-32 h-48 border-4 border-blue-300 bg-blue-100 relative cursor-pointer hover:bg-blue-200 transition-colors"
             onClick={() => setIsModalOpen(true)}
           >
@@ -108,7 +156,11 @@ export default function Home() {
         <h2 className="text-xl font-bold mb-4">📥 인박스 (예정된 할일)</h2>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {/* 새 인박스 할일 추가 포스트잇 */}
-          <div className="w-32 h-32 border-2 border-gray-300 bg-gray-100 p-2 flex-shrink-0">
+          <div className={`w-32 h-32 border-2 ${colorStyles[inboxSelectedColor]} p-2 flex-shrink-0`}>
+            <ColorPalette
+              selectedColor={inboxSelectedColor}
+              onColorSelect={setInboxSelectedColor}
+            />
             <input
               type="text"
               placeholder="예정 할일 입력"
@@ -117,7 +169,10 @@ export default function Home() {
                 if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                   const text = e.currentTarget.value;
                   if (text.trim()) {
-                    setInboxTodos([...inboxTodos, { id: Date.now(), text }]);
+                    setInboxTodos([
+                      ...inboxTodos,
+                      { id: Date.now(), text, color: inboxSelectedColor },
+                    ]);
                     e.currentTarget.value = "";
                   }
                 }
@@ -128,7 +183,9 @@ export default function Home() {
           {inboxTodos.map((todo) => (
             <div
               key={todo.id}
-              className="w-32 h-32 border-2 border-orange-300 bg-orange-100 p-2 flex-shrink-0"
+              className={`w-32 h-32 border-2 ${
+                colorStyles[todo.color]
+              } p-2 flex-shrink-0`}
             >
               <div className="text-sm">{todo.text}</div>
               <button
@@ -161,12 +218,16 @@ export default function Home() {
           </DialogHeader>
           <div className="grid grid-cols-4 gap-4 p-4">
             {completedTodos.map((todo) => (
-              <div 
-                key={todo.id} 
-                className="w-32 h-32 border-2 border-green-300 bg-green-100 p-2 relative"
+              <div
+                key={todo.id}
+                className={`w-32 h-32 border-2 ${
+                  colorStyles[todo.color]
+                } p-2 relative opacity-75`}
               >
                 <div className="text-sm">{todo.text}</div>
-                <div className="absolute bottom-2 right-2 text-xs text-green-600">✓</div>
+                <div className="absolute bottom-2 right-2 text-xs text-green-600">
+                  ✓
+                </div>
               </div>
             ))}
             {completedTodos.length === 0 && (
