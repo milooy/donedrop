@@ -29,6 +29,9 @@ interface Todo {
   id: number;
   text: string;
   color: PostItColor;
+  isPinned: boolean;
+  pinnedAt?: number;
+  createdAt: number;
 }
 
 const colorStyles = {
@@ -182,35 +185,55 @@ const PostItItem = ({
   onComplete,
   onMoveToInbox,
   onDelete,
+  onTogglePin,
 }: {
   todo: Todo;
   onComplete: () => void;
   onMoveToInbox: () => void;
   onDelete: () => void;
+  onTogglePin: () => void;
 }) => (
   <DraggablePostIt todo={todo}>
     <div
-      className={`w-32 h-32 border-2 ${
+      className={`relative w-32 h-32 border-2 ${
         colorStyles[todo.color]
-      } p-2 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform`}
+      } p-2 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform ${
+        todo.isPinned ? "shadow-lg" : ""
+      }`}
     >
+      {/* Pin 아이콘 */}
+      <button
+        className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+          todo.isPinned
+            ? "bg-red-500 text-white shadow-md scale-110"
+            : "bg-gray-300 opacity-50 text-gray-500 hover:bg-red-400 hover:text-white hover:opacity-100"
+        }`}
+        onClick={onTogglePin}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        {todo.isPinned ? "📌" : "📍"}
+      </button>
+
       <div className="text-sm">{todo.text}</div>
       <div className="flex gap-1 mt-2">
         <button
           className="text-xs bg-red-200 px-2 py-1 rounded"
           onClick={onComplete}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           완료
         </button>
         <button
           className="text-xs bg-orange-200 px-2 py-1 rounded"
           onClick={onMoveToInbox}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           ↓인박스
         </button>
         <button
           className="text-xs bg-gray-200 px-2 py-1 rounded"
           onClick={onDelete}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           삭제
         </button>
@@ -224,27 +247,46 @@ const InboxItem = ({
   todo,
   onMoveToMain,
   onDelete,
+  onTogglePin,
 }: {
   todo: Todo;
   onMoveToMain: () => void;
   onDelete: () => void;
+  onTogglePin: () => void;
 }) => (
   <DraggablePostIt todo={todo}>
     <div
-      className={`w-32 h-32 border-2 ${
+      className={`relative w-32 h-32 border-2 ${
         colorStyles[todo.color]
-      } p-2 flex-shrink-0 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform`}
+      } p-2 flex-shrink-0 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform ${
+        todo.isPinned ? "shadow-lg" : ""
+      }`}
     >
+      {/* Pin 아이콘 */}
+      <button
+        className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+          todo.isPinned
+            ? "bg-red-500 text-white shadow-md scale-110"
+            : "bg-gray-300 opacity-50 text-gray-500 hover:bg-red-400 hover:text-white hover:opacity-100"
+        }`}
+        onClick={onTogglePin}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        {todo.isPinned ? "📌" : "📍"}
+      </button>
+
       <div className="text-sm">{todo.text}</div>
       <button
         className="mt-2 text-xs bg-green-200 px-2 py-1 rounded mr-1"
         onClick={onMoveToMain}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         ↑메인
       </button>
       <button
         className="mt-2 text-xs bg-gray-200 px-2 py-1 rounded"
         onClick={onDelete}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         삭제
       </button>
@@ -378,11 +420,31 @@ export default function Home() {
 
   // 할일 액션 핸들러
   const addTodo = (text: string, color: PostItColor) => {
-    setTodos((prev) => [...prev, { id: Date.now(), text, color }]);
+    const now = Date.now();
+    setTodos((prev) => [
+      ...prev,
+      {
+        id: now,
+        text,
+        color,
+        isPinned: false,
+        createdAt: now,
+      },
+    ]);
   };
 
   const addInboxTodo = (text: string, color: PostItColor) => {
-    setInboxTodos((prev) => [...prev, { id: Date.now(), text, color }]);
+    const now = Date.now();
+    setInboxTodos((prev) => [
+      ...prev,
+      {
+        id: now,
+        text,
+        color,
+        isPinned: false,
+        createdAt: now,
+      },
+    ]);
   };
 
   const completeTodo = (todo: Todo) => {
@@ -407,6 +469,47 @@ export default function Home() {
   const deleteInboxTodo = (id: number) => {
     setInboxTodos((prev) => prev.filter((t) => t.id !== id));
   };
+
+  const togglePin = (todoId: number) => {
+    setTodos((prev) =>
+      prev.map((todo) =>
+        todo.id === todoId
+          ? {
+              ...todo,
+              isPinned: !todo.isPinned,
+              pinnedAt: !todo.isPinned ? Date.now() : undefined,
+            }
+          : todo
+      )
+    );
+  };
+
+  const toggleInboxPin = (todoId: number) => {
+    setInboxTodos((prev) =>
+      prev.map((todo) =>
+        todo.id === todoId
+          ? {
+              ...todo,
+              isPinned: !todo.isPinned,
+              pinnedAt: !todo.isPinned ? Date.now() : undefined,
+            }
+          : todo
+      )
+    );
+  };
+
+  // todos 정렬 (핀 된 것이 앞에, 최신 핀이 제일 앞)
+  const sortedTodos = todos.sort((a, b) => {
+    // 1. 핀 된 것들끼리는 pinnedAt 기준 최신순
+    if (a.isPinned && b.isPinned) {
+      return (b.pinnedAt || 0) - (a.pinnedAt || 0);
+    }
+    // 2. 핀 된 것이 일반 것보다 앞에
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    // 3. 둘 다 핀 안된 것들은 생성일 기준 최신순
+    return b.createdAt - a.createdAt;
+  });
 
   return (
     <DndContext
@@ -437,13 +540,14 @@ export default function Home() {
                   onColorSelect={setSelectedColor}
                   onAddTodo={addTodo}
                 />
-                {todos.map((todo) => (
+                {sortedTodos.map((todo) => (
                   <PostItItem
                     key={todo.id}
                     todo={todo}
                     onComplete={() => completeTodo(todo)}
                     onMoveToInbox={() => moveToInbox(todo)}
                     onDelete={() => deleteTodo(todo.id)}
+                    onTogglePin={() => togglePin(todo.id)}
                   />
                 ))}
               </div>
@@ -469,14 +573,27 @@ export default function Home() {
               onColorSelect={setInboxSelectedColor}
               onAddTodo={addInboxTodo}
             />
-            {inboxTodos.map((todo) => (
-              <InboxItem
-                key={todo.id}
-                todo={todo}
-                onMoveToMain={() => moveToMain(todo)}
-                onDelete={() => deleteInboxTodo(todo.id)}
-              />
-            ))}
+            {inboxTodos
+              .sort((a, b) => {
+                // 핀 된 것들끼리는 pinnedAt 기준 최신순
+                if (a.isPinned && b.isPinned) {
+                  return (b.pinnedAt || 0) - (a.pinnedAt || 0);
+                }
+                // 핀 된 것이 일반 것보다 앞에
+                if (a.isPinned && !b.isPinned) return -1;
+                if (!a.isPinned && b.isPinned) return 1;
+                // 둘 다 핀 안된 것들은 생성일 기준 최신순
+                return b.createdAt - a.createdAt;
+              })
+              .map((todo) => (
+                <InboxItem
+                  key={todo.id}
+                  todo={todo}
+                  onMoveToMain={() => moveToMain(todo)}
+                  onDelete={() => deleteInboxTodo(todo.id)}
+                  onTogglePin={() => toggleInboxPin(todo.id)}
+                />
+              ))}
           </div>
         </DroppableArea>
 
