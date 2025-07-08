@@ -32,6 +32,7 @@ interface Todo {
   isPinned: boolean;
   pinnedAt?: number;
   createdAt: number;
+  completedAt?: number;
 }
 
 const colorStyles = {
@@ -39,6 +40,19 @@ const colorStyles = {
   pink: "border-pink-300 bg-pink-100",
   blue: "border-blue-300 bg-blue-100",
 } as const;
+
+const grayColorStyles = {
+  yellow: "border-gray-300 bg-gray-100",
+  pink: "border-gray-300 bg-gray-100",
+  blue: "border-gray-300 bg-gray-100",
+} as const;
+
+// 오늘 날짜인지 확인하는 함수
+const isToday = (timestamp: number) => {
+  const today = new Date();
+  const date = new Date(timestamp);
+  return today.toDateString() === date.toDateString();
+};
 
 // 로컬스토리지 훅
 const useLocalStorage = <T,>(key: string, defaultValue: T) => {
@@ -381,7 +395,9 @@ const GlassJar = ({
                 <TooltipTrigger asChild>
                   <div
                     className={`w-4 h-4 ${
-                      colorStyles[todo.color]
+                      todo.completedAt && isToday(todo.completedAt) 
+                        ? colorStyles[todo.color]
+                        : grayColorStyles[todo.color]
                     } border border-gray-300 rounded-sm transform transition-transform hover:scale-110 cursor-pointer`}
                     style={{
                       transform: `rotate(${((i * 17) % 45) - 22}deg)`,
@@ -393,13 +409,17 @@ const GlassJar = ({
                   <div className="flex items-center gap-2">
                     <div
                       className={`w-3 h-3 ${
-                        colorStyles[todo.color]
+                        todo.completedAt && isToday(todo.completedAt) 
+                          ? colorStyles[todo.color]
+                          : grayColorStyles[todo.color]
                       } border border-gray-400 rounded-sm`}
                     />
                     <span className="text-sm font-medium">{todo.text}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    완료된 할일
+                    {todo.completedAt && isToday(todo.completedAt) 
+                      ? "오늘 완료된 할일" 
+                      : `${todo.completedAt ? new Date(todo.completedAt).toLocaleDateString() : ''} 완료된 할일`}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -459,7 +479,7 @@ export default function Home() {
       if (isFromMain)
         setTodos((prev) => prev.filter((t) => t.id !== draggedTodo.id));
       else setInboxTodos((prev) => prev.filter((t) => t.id !== draggedTodo.id));
-      setCompletedTodos((prev) => [...prev, draggedTodo]);
+      setCompletedTodos((prev) => [...prev, { ...draggedTodo, completedAt: Date.now() }]);
     }
   };
 
@@ -654,7 +674,9 @@ export default function Home() {
                 <div
                   key={todo.id}
                   className={`w-32 h-32 border-2 ${
-                    colorStyles[todo.color]
+                    todo.completedAt && isToday(todo.completedAt) 
+                      ? colorStyles[todo.color]
+                      : grayColorStyles[todo.color]
                   } p-2 relative opacity-75`}
                 >
                   <div className="text-sm">{todo.text}</div>
