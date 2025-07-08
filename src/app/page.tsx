@@ -179,23 +179,75 @@ const PostItInput = ({
   </div>
 );
 
+// 텍스트 편집 컴포넌트
+const EditableText = ({
+  text,
+  onEdit,
+  className,
+}: {
+  text: string;
+  onEdit: (newText: string) => void;
+  className?: string;
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(text);
+
+  const handleSave = () => {
+    onEdit(editText);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    }
+    if (e.key === 'Escape') {
+      setEditText(text);
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <input
+        type="text"
+        value={editText}
+        onChange={(e) => setEditText(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={handleKeyDown}
+        onPointerDown={(e) => e.stopPropagation()}
+        className={`${className} bg-transparent border-none outline-none w-full`}
+        autoFocus
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${className} cursor-text`}
+      onClick={() => setIsEditing(true)}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      {text}
+    </div>
+  );
+};
+
 // 포스트잇 아이템 컴포넌트
 const PostItItem = ({
   todo,
-  onComplete,
-  onMoveToInbox,
   onDelete,
   onTogglePin,
+  onEditText,
 }: {
   todo: Todo;
-  onComplete: () => void;
-  onMoveToInbox: () => void;
   onDelete: () => void;
   onTogglePin: () => void;
+  onEditText: (newText: string) => void;
 }) => (
   <DraggablePostIt todo={todo}>
     <div
-      className={`relative w-32 h-32 border-2 ${
+      className={`group relative w-32 h-32 border-2 ${
         colorStyles[todo.color]
       } p-2 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform ${
         todo.isPinned ? "shadow-lg" : ""
@@ -203,10 +255,10 @@ const PostItItem = ({
     >
       {/* Pin 아이콘 */}
       <button
-        className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+        className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer ${
           todo.isPinned
             ? "bg-red-500 text-white shadow-md scale-110"
-            : "bg-gray-300 opacity-50 text-gray-500 hover:bg-red-400 hover:text-white hover:opacity-100"
+            : "opacity-0 group-hover:opacity-100 bg-gray-300 text-gray-500 hover:bg-red-400 hover:text-white"
         }`}
         onClick={onTogglePin}
         onPointerDown={(e) => e.stopPropagation()}
@@ -214,30 +266,20 @@ const PostItItem = ({
         {todo.isPinned ? "📌" : "📍"}
       </button>
 
-      <div className="text-sm">{todo.text}</div>
-      <div className="flex gap-1 mt-2">
-        <button
-          className="text-xs bg-red-200 px-2 py-1 rounded"
-          onClick={onComplete}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          완료
-        </button>
-        <button
-          className="text-xs bg-orange-200 px-2 py-1 rounded"
-          onClick={onMoveToInbox}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          ↓인박스
-        </button>
-        <button
-          className="text-xs bg-gray-200 px-2 py-1 rounded"
-          onClick={onDelete}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          삭제
-        </button>
-      </div>
+      <EditableText 
+        text={todo.text}
+        onEdit={onEditText}
+        className="text-sm"
+      />
+      
+      {/* 삭제 버튼 */}
+      <button
+        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+        onClick={onDelete}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        ×
+      </button>
     </div>
   </DraggablePostIt>
 );
@@ -245,18 +287,18 @@ const PostItItem = ({
 // 인박스 아이템 컴포넌트
 const InboxItem = ({
   todo,
-  onMoveToMain,
   onDelete,
   onTogglePin,
+  onEditText,
 }: {
   todo: Todo;
-  onMoveToMain: () => void;
   onDelete: () => void;
   onTogglePin: () => void;
+  onEditText: (newText: string) => void;
 }) => (
   <DraggablePostIt todo={todo}>
     <div
-      className={`relative w-32 h-32 border-2 ${
+      className={`group relative w-32 h-32 border-2 ${
         colorStyles[todo.color]
       } p-2 flex-shrink-0 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform ${
         todo.isPinned ? "shadow-lg" : ""
@@ -264,10 +306,10 @@ const InboxItem = ({
     >
       {/* Pin 아이콘 */}
       <button
-        className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+        className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer ${
           todo.isPinned
             ? "bg-red-500 text-white shadow-md scale-110"
-            : "bg-gray-300 opacity-50 text-gray-500 hover:bg-red-400 hover:text-white hover:opacity-100"
+            : "opacity-0 group-hover:opacity-100 bg-gray-300 text-gray-500 hover:bg-red-400 hover:text-white"
         }`}
         onClick={onTogglePin}
         onPointerDown={(e) => e.stopPropagation()}
@@ -275,20 +317,19 @@ const InboxItem = ({
         {todo.isPinned ? "📌" : "📍"}
       </button>
 
-      <div className="text-sm">{todo.text}</div>
+      <EditableText 
+        text={todo.text}
+        onEdit={onEditText}
+        className="text-sm"
+      />
+      
+      {/* 삭제 버튼 */}
       <button
-        className="mt-2 text-xs bg-green-200 px-2 py-1 rounded mr-1"
-        onClick={onMoveToMain}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        ↑메인
-      </button>
-      <button
-        className="mt-2 text-xs bg-gray-200 px-2 py-1 rounded"
+        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
         onClick={onDelete}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        삭제
+        ×
       </button>
     </div>
   </DraggablePostIt>
@@ -447,20 +488,6 @@ export default function Home() {
     ]);
   };
 
-  const completeTodo = (todo: Todo) => {
-    setTodos((prev) => prev.filter((t) => t.id !== todo.id));
-    setCompletedTodos((prev) => [...prev, todo]);
-  };
-
-  const moveToInbox = (todo: Todo) => {
-    setTodos((prev) => prev.filter((t) => t.id !== todo.id));
-    setInboxTodos((prev) => [...prev, todo]);
-  };
-
-  const moveToMain = (todo: Todo) => {
-    setInboxTodos((prev) => prev.filter((t) => t.id !== todo.id));
-    setTodos((prev) => [...prev, todo]);
-  };
 
   const deleteTodo = (id: number) => {
     setTodos((prev) => prev.filter((t) => t.id !== id));
@@ -494,6 +521,22 @@ export default function Home() {
               pinnedAt: !todo.isPinned ? Date.now() : undefined,
             }
           : todo
+      )
+    );
+  };
+
+  const editTodoText = (todoId: number, newText: string) => {
+    setTodos((prev) =>
+      prev.map((todo) =>
+        todo.id === todoId ? { ...todo, text: newText } : todo
+      )
+    );
+  };
+
+  const editInboxTodoText = (todoId: number, newText: string) => {
+    setInboxTodos((prev) =>
+      prev.map((todo) =>
+        todo.id === todoId ? { ...todo, text: newText } : todo
       )
     );
   };
@@ -544,10 +587,9 @@ export default function Home() {
                   <PostItItem
                     key={todo.id}
                     todo={todo}
-                    onComplete={() => completeTodo(todo)}
-                    onMoveToInbox={() => moveToInbox(todo)}
                     onDelete={() => deleteTodo(todo.id)}
                     onTogglePin={() => togglePin(todo.id)}
+                    onEditText={(newText) => editTodoText(todo.id, newText)}
                   />
                 ))}
               </div>
@@ -589,9 +631,9 @@ export default function Home() {
                 <InboxItem
                   key={todo.id}
                   todo={todo}
-                  onMoveToMain={() => moveToMain(todo)}
                   onDelete={() => deleteInboxTodo(todo.id)}
                   onTogglePin={() => toggleInboxPin(todo.id)}
+                  onEditText={(newText) => editInboxTodoText(todo.id, newText)}
                 />
               ))}
           </div>
