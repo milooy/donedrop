@@ -219,12 +219,12 @@ const EditableText = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
       handleSave();
     }
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
       setEditText(text);
@@ -291,12 +291,8 @@ const PostItItem = ({
         {todo.isPinned ? "📌" : "📍"}
       </button>
 
-      <EditableText 
-        text={todo.text}
-        onEdit={onEditText}
-        className="text-sm"
-      />
-      
+      <EditableText text={todo.text} onEdit={onEditText} className="text-sm" />
+
       {/* 삭제 버튼 */}
       <button
         className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
@@ -342,12 +338,8 @@ const InboxItem = ({
         {todo.isPinned ? "📌" : "📍"}
       </button>
 
-      <EditableText 
-        text={todo.text}
-        onEdit={onEditText}
-        className="text-sm"
-      />
-      
+      <EditableText text={todo.text} onEdit={onEditText} className="text-sm" />
+
       {/* 삭제 버튼 */}
       <button
         className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
@@ -406,7 +398,9 @@ const GlassJar = ({
                 <TooltipTrigger asChild>
                   <div
                     className={`w-4 h-4 ${
-                      isClient && todo.completedAt && isToday(todo.completedAt, todayString) 
+                      isClient &&
+                      todo.completedAt &&
+                      isToday(todo.completedAt, todayString)
                         ? colorStyles[todo.color]
                         : grayColorStyles[todo.color]
                     } border border-gray-300 rounded-sm transform transition-transform hover:scale-110 cursor-pointer`}
@@ -420,7 +414,9 @@ const GlassJar = ({
                   <div className="flex items-center gap-2">
                     <div
                       className={`w-3 h-3 ${
-                        isClient && todo.completedAt && isToday(todo.completedAt, todayString) 
+                        isClient &&
+                        todo.completedAt &&
+                        isToday(todo.completedAt, todayString)
                           ? colorStyles[todo.color]
                           : grayColorStyles[todo.color]
                       } border border-gray-400 rounded-sm`}
@@ -428,9 +424,15 @@ const GlassJar = ({
                     <span className="text-sm font-medium">{todo.text}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {isClient && todo.completedAt && isToday(todo.completedAt, todayString) 
-                      ? "오늘 완료된 할일" 
-                      : `${todo.completedAt ? new Date(todo.completedAt).toLocaleDateString() : ''} 완료된 할일`}
+                    {isClient &&
+                    todo.completedAt &&
+                    isToday(todo.completedAt, todayString)
+                      ? "오늘 완료된 할일"
+                      : `${
+                          todo.completedAt
+                            ? new Date(todo.completedAt).toLocaleDateString()
+                            : ""
+                        } 완료된 할일`}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -461,6 +463,7 @@ export default function Home() {
     "donedrop-completed-todos",
     []
   );
+  const [coins, setCoins] = useLocalStorage<number>("donedrop-coins", 0);
   const [selectedColor, setSelectedColor] = useLocalStorage<PostItColor>(
     "donedrop-selected-color",
     "yellow"
@@ -470,8 +473,17 @@ export default function Home() {
 
   const [activeTodo, setActiveTodo] = useState<Todo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showCoinRewardModal, setShowCoinRewardModal] = useState(false);
 
   const completedCount = completedTodos.length;
+
+  const REWARD_COUNT = 5;
+  // 50개 달성 체크
+  useEffect(() => {
+    if (completedCount >= REWARD_COUNT) {
+      setShowCoinRewardModal(true);
+    }
+  }, [completedCount]);
 
   // 드래그 앤 드롭 핸들러
   const handleDragStart = (event: DragStartEvent) => {
@@ -499,7 +511,10 @@ export default function Home() {
       if (isFromMain)
         setTodos((prev) => prev.filter((t) => t.id !== draggedTodo.id));
       else setInboxTodos((prev) => prev.filter((t) => t.id !== draggedTodo.id));
-      setCompletedTodos((prev) => [...prev, { ...draggedTodo, completedAt: Date.now() }]);
+      setCompletedTodos((prev) => [
+        ...prev,
+        { ...draggedTodo, completedAt: Date.now() },
+      ]);
     }
   };
 
@@ -531,7 +546,6 @@ export default function Home() {
       },
     ]);
   };
-
 
   const deleteTodo = (id: number) => {
     setTodos((prev) => prev.filter((t) => t.id !== id));
@@ -617,6 +631,15 @@ export default function Home() {
       </DragOverlay>
 
       <div className="min-h-screen flex flex-col bg-gray-50">
+        {/* 우상단 코인 표시 */}
+        <div className="absolute top-4 right-4 z-10">
+          <div className="bg-white rounded-lg shadow-md px-4 py-2 flex items-center gap-2">
+            <span className="text-2xl">🪙</span>
+            <span className="font-bold text-lg text-yellow-600">{coins}</span>
+            <span className="text-sm text-gray-600">코인</span>
+          </div>
+        </div>
+
         <div className="flex flex-1">
           {/* 메인 보드 */}
           <DroppableArea id="main-board" className="flex-1 p-8 bg-white">
@@ -696,7 +719,9 @@ export default function Home() {
                 <div
                   key={todo.id}
                   className={`w-32 h-32 border-2 ${
-                    isClient && todo.completedAt && isToday(todo.completedAt, todayString) 
+                    isClient &&
+                    todo.completedAt &&
+                    isToday(todo.completedAt, todayString)
                       ? colorStyles[todo.color]
                       : grayColorStyles[todo.color]
                   } p-2 relative opacity-75`}
@@ -712,6 +737,39 @@ export default function Home() {
                   아직 완료된 할일이 없습니다.
                 </div>
               )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* 코인 보상 모달 */}
+        <Dialog
+          open={showCoinRewardModal}
+          onOpenChange={setShowCoinRewardModal}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-center text-2xl">
+                🎉 축하합니다! 🎉
+              </DialogTitle>
+            </DialogHeader>
+            <div className="text-center py-6">
+              <div className="mb-4">
+                <span className="text-6xl">🪙</span>
+              </div>
+              <h3 className="text-xl font-bold mb-2">{REWARD_COUNT}개 달성!</h3>
+              <p className="text-gray-600 mb-4">
+                생산성 코인 1개를 획득하셨습니다!
+              </p>
+              <button
+                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                onClick={() => {
+                  setCoins((prev) => prev + 1);
+                  setCompletedTodos([]);
+                  setShowCoinRewardModal(false);
+                }}
+              >
+                수락하고 유리병 비우기
+              </button>
             </div>
           </DialogContent>
         </Dialog>
