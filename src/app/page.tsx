@@ -47,37 +47,44 @@ const grayColorStyles = {
   blue: "border-gray-300 bg-gray-100",
 } as const;
 
-// 오늘 날짜인지 확인하는 함수
-const isToday = (timestamp: number) => {
-  const today = new Date();
+// 오늘 날짜인지 확인하는 함수 (hydration-safe)
+const isToday = (timestamp: number, currentDate: string) => {
+  if (!timestamp) return false;
   const date = new Date(timestamp);
-  return today.toDateString() === date.toDateString();
+  return date.toDateString() === currentDate;
 };
 
-// 로컬스토리지 훅
+// 로컬스토리지 훅 (hydration-safe)
 const useLocalStorage = <T,>(key: string, defaultValue: T) => {
-  const [value, setValue] = useState<T>(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : defaultValue;
-      }
-      return defaultValue;
-    } catch (error) {
-      console.error(`Failed to load ${key} from localStorage:`, error);
-      return defaultValue;
-    }
-  });
+  const [value, setValue] = useState<T>(defaultValue);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     try {
       if (typeof window !== "undefined") {
-        localStorage.setItem(key, JSON.stringify(value));
+        const item = localStorage.getItem(key);
+        if (item) {
+          setValue(JSON.parse(item));
+        }
+        setIsLoaded(true);
       }
     } catch (error) {
-      console.error(`Failed to save ${key} to localStorage:`, error);
+      console.error(`Failed to load ${key} from localStorage:`, error);
+      setIsLoaded(true);
     }
-  }, [key, value]);
+  }, [key]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(key, JSON.stringify(value));
+        }
+      } catch (error) {
+        console.error(`Failed to save ${key} to localStorage:`, error);
+      }
+    }
+  }, [key, value, isLoaded]);
 
   return [value, setValue] as const;
 };
@@ -358,10 +365,14 @@ const GlassJar = ({
   completedTodos,
   completedCount,
   onClick,
+  isClient,
+  todayString,
 }: {
   completedTodos: Todo[];
   completedCount: number;
   onClick: () => void;
+  isClient: boolean;
+  todayString: string;
 }) => (
   <div className="w-80 p-8 bg-white flex items-center justify-center">
     <DroppableArea id="glass-jar" className="w-48 h-80">
@@ -395,7 +406,7 @@ const GlassJar = ({
                 <TooltipTrigger asChild>
                   <div
                     className={`w-4 h-4 ${
-                      todo.completedAt && isToday(todo.completedAt) 
+                      isClient && todo.completedAt && isToday(todo.completedAt, todayString) 
                         ? colorStyles[todo.color]
                         : grayColorStyles[todo.color]
                     } border border-gray-300 rounded-sm transform transition-transform hover:scale-110 cursor-pointer`}
@@ -409,7 +420,7 @@ const GlassJar = ({
                   <div className="flex items-center gap-2">
                     <div
                       className={`w-3 h-3 ${
-                        todo.completedAt && isToday(todo.completedAt) 
+                        isClient && todo.completedAt && isToday(todo.completedAt, todayString) 
                           ? colorStyles[todo.color]
                           : grayColorStyles[todo.color]
                       } border border-gray-400 rounded-sm`}
@@ -417,7 +428,7 @@ const GlassJar = ({
                     <span className="text-sm font-medium">{todo.text}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {todo.completedAt && isToday(todo.completedAt) 
+                    {isClient && todo.completedAt && isToday(todo.completedAt, todayString) 
                       ? "오늘 완료된 할일" 
                       : `${todo.completedAt ? new Date(todo.completedAt).toLocaleDateString() : ''} 완료된 할일`}
                   </p>
@@ -432,6 +443,15 @@ const GlassJar = ({
 );
 
 export default function Home() {
+  // 클라이언트 전용 상태
+  const [isClient, setIsClient] = useState(false);
+  const [todayString, setTodayString] = useState("");
+
+  useEffect(() => {
+    setIsClient(true);
+    setTodayString(new Date().toDateString());
+  }, []);
+
   const [todos, setTodos] = useLocalStorage<Todo[]>("donedrop-todos", []);
   const [inboxTodos, setInboxTodos] = useLocalStorage<Todo[]>(
     "donedrop-inbox-todos",
@@ -625,6 +645,8 @@ export default function Home() {
             completedTodos={completedTodos}
             completedCount={completedCount}
             onClick={() => setIsModalOpen(true)}
+            isClient={isClient}
+            todayString={todayString}
           />
         </div>
 
@@ -674,7 +696,7 @@ export default function Home() {
                 <div
                   key={todo.id}
                   className={`w-32 h-32 border-2 ${
-                    todo.completedAt && isToday(todo.completedAt) 
+                    isClient && todo.completedAt && isToday(todo.completedAt, todayString) 
                       ? colorStyles[todo.color]
                       : grayColorStyles[todo.color]
                   } p-2 relative opacity-75`}
