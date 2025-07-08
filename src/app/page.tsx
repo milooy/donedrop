@@ -199,9 +199,13 @@ const EditableText = ({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
       handleSave();
     }
     if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
       setEditText(text);
       setIsEditing(false);
     }
