@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from "react";
 import {
+  useSupabaseData,
+  type Todo,
+  type PostItColor,
+} from "@/hooks/useSupabaseData";
+import LoginScreen from "@/components/LoginScreen";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -23,18 +29,6 @@ import {
   useDroppable,
 } from "@dnd-kit/core";
 
-type PostItColor = "yellow" | "pink" | "blue";
-
-interface Todo {
-  id: number;
-  text: string;
-  color: PostItColor;
-  isPinned: boolean;
-  pinnedAt?: number;
-  createdAt: number;
-  completedAt?: number;
-}
-
 const colorStyles = {
   yellow: "border-yellow-300 bg-yellow-100",
   pink: "border-pink-300 bg-pink-100",
@@ -52,41 +46,6 @@ const isToday = (timestamp: number, currentDate: string) => {
   if (!timestamp) return false;
   const date = new Date(timestamp);
   return date.toDateString() === currentDate;
-};
-
-// 로컬스토리지 훅 (hydration-safe)
-const useLocalStorage = <T,>(key: string, defaultValue: T) => {
-  const [value, setValue] = useState<T>(defaultValue);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const item = localStorage.getItem(key);
-        if (item) {
-          setValue(JSON.parse(item));
-        }
-        setIsLoaded(true);
-      }
-    } catch (error) {
-      console.error(`Failed to load ${key} from localStorage:`, error);
-      setIsLoaded(true);
-    }
-  }, [key]);
-
-  useEffect(() => {
-    if (isLoaded) {
-      try {
-        if (typeof window !== "undefined") {
-          localStorage.setItem(key, JSON.stringify(value));
-        }
-      } catch (error) {
-        console.error(`Failed to save ${key} to localStorage:`, error);
-      }
-    }
-  }, [key, value, isLoaded]);
-
-  return [value, setValue] as const;
 };
 
 // 컴포넌트들
@@ -445,6 +404,31 @@ const GlassJar = ({
 );
 
 export default function Home() {
+  // Supabase 데이터 훅
+  const {
+    user,
+    loading,
+    signInWithGoogle,
+    todos,
+    inboxTodos,
+    completedTodos,
+    selectedColor,
+    inboxSelectedColor,
+    coins,
+    addTodo,
+    addInboxTodo,
+    editTodoText,
+    editInboxTodoText,
+    togglePin,
+    toggleInboxPin,
+    removeTodo,
+    removeInboxTodo,
+    completeTodo,
+    rewardCoins,
+    updateSelectedColor,
+    updateInboxSelectedColor,
+  } = useSupabaseData();
+
   // 클라이언트 전용 상태
   const [isClient, setIsClient] = useState(false);
   const [todayString, setTodayString] = useState("");
@@ -453,23 +437,6 @@ export default function Home() {
     setIsClient(true);
     setTodayString(new Date().toDateString());
   }, []);
-
-  const [todos, setTodos] = useLocalStorage<Todo[]>("donedrop-todos", []);
-  const [inboxTodos, setInboxTodos] = useLocalStorage<Todo[]>(
-    "donedrop-inbox-todos",
-    []
-  );
-  const [completedTodos, setCompletedTodos] = useLocalStorage<Todo[]>(
-    "donedrop-completed-todos",
-    []
-  );
-  const [coins, setCoins] = useLocalStorage<number>("donedrop-coins", 0);
-  const [selectedColor, setSelectedColor] = useLocalStorage<PostItColor>(
-    "donedrop-selected-color",
-    "yellow"
-  );
-  const [inboxSelectedColor, setInboxSelectedColor] =
-    useLocalStorage<PostItColor>("donedrop-inbox-selected-color", "yellow");
 
   const [activeTodo, setActiveTodo] = useState<Todo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -485,12 +452,28 @@ export default function Home() {
     }
   }, [completedCount]);
 
+  // 로그인되지 않은 경우 로그인 화면 표시
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginScreen onSignIn={signInWithGoogle} />;
+  }
+
   // 드래그 앤 드롭 핸들러
   const handleDragStart = (event: DragStartEvent) => {
     setActiveTodo(event.active.data.current?.todo as Todo);
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveTodo(null);
 
@@ -501,103 +484,12 @@ export default function Home() {
     const isFromMain = todos.some((t) => t.id === draggedTodo.id);
     const isFromInbox = inboxTodos.some((t) => t.id === draggedTodo.id);
 
-    if (over.id === "main-board" && isFromInbox) {
-      setInboxTodos((prev) => prev.filter((t) => t.id !== draggedTodo.id));
-      setTodos((prev) => [...prev, draggedTodo]);
-    } else if (over.id === "inbox" && isFromMain) {
-      setTodos((prev) => prev.filter((t) => t.id !== draggedTodo.id));
-      setInboxTodos((prev) => [...prev, draggedTodo]);
-    } else if (over.id === "glass-jar" && (isFromMain || isFromInbox)) {
-      if (isFromMain)
-        setTodos((prev) => prev.filter((t) => t.id !== draggedTodo.id));
-      else setInboxTodos((prev) => prev.filter((t) => t.id !== draggedTodo.id));
-      setCompletedTodos((prev) => [
-        ...prev,
-        { ...draggedTodo, completedAt: Date.now() },
-      ]);
+    if (over.id === "glass-jar" && (isFromMain || isFromInbox)) {
+      await completeTodo(draggedTodo, isFromInbox);
     }
   };
 
-  // 할일 액션 핸들러
-  const addTodo = (text: string, color: PostItColor) => {
-    const now = Date.now();
-    setTodos((prev) => [
-      ...prev,
-      {
-        id: now,
-        text,
-        color,
-        isPinned: false,
-        createdAt: now,
-      },
-    ]);
-  };
-
-  const addInboxTodo = (text: string, color: PostItColor) => {
-    const now = Date.now();
-    setInboxTodos((prev) => [
-      ...prev,
-      {
-        id: now,
-        text,
-        color,
-        isPinned: false,
-        createdAt: now,
-      },
-    ]);
-  };
-
-  const deleteTodo = (id: number) => {
-    setTodos((prev) => prev.filter((t) => t.id !== id));
-  };
-
-  const deleteInboxTodo = (id: number) => {
-    setInboxTodos((prev) => prev.filter((t) => t.id !== id));
-  };
-
-  const togglePin = (todoId: number) => {
-    setTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === todoId
-          ? {
-              ...todo,
-              isPinned: !todo.isPinned,
-              pinnedAt: !todo.isPinned ? Date.now() : undefined,
-            }
-          : todo
-      )
-    );
-  };
-
-  const toggleInboxPin = (todoId: number) => {
-    setInboxTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === todoId
-          ? {
-              ...todo,
-              isPinned: !todo.isPinned,
-              pinnedAt: !todo.isPinned ? Date.now() : undefined,
-            }
-          : todo
-      )
-    );
-  };
-
-  const editTodoText = (todoId: number, newText: string) => {
-    setTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === todoId ? { ...todo, text: newText } : todo
-      )
-    );
-  };
-
-  const editInboxTodoText = (todoId: number, newText: string) => {
-    setInboxTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === todoId ? { ...todo, text: newText } : todo
-      )
-    );
-  };
+  // 모든 액션 핸들러는 useSupabaseData 훅에서 제공됨
 
   // todos 정렬 (핀 된 것이 앞에, 최신 핀이 제일 앞)
   const sortedTodos = todos.sort((a, b) => {
@@ -647,14 +539,14 @@ export default function Home() {
               <div className="flex flex-wrap gap-6">
                 <PostItInput
                   selectedColor={selectedColor}
-                  onColorSelect={setSelectedColor}
+                  onColorSelect={updateSelectedColor}
                   onAddTodo={addTodo}
                 />
                 {sortedTodos.map((todo) => (
                   <PostItItem
                     key={todo.id}
                     todo={todo}
-                    onDelete={() => deleteTodo(todo.id)}
+                    onDelete={() => removeTodo(todo.id)}
                     onTogglePin={() => togglePin(todo.id)}
                     onEditText={(newText) => editTodoText(todo.id, newText)}
                   />
@@ -681,7 +573,7 @@ export default function Home() {
           >
             <PostItInput
               selectedColor={inboxSelectedColor}
-              onColorSelect={setInboxSelectedColor}
+              onColorSelect={updateInboxSelectedColor}
               onAddTodo={addInboxTodo}
             />
             {inboxTodos
@@ -700,7 +592,7 @@ export default function Home() {
                 <InboxItem
                   key={todo.id}
                   todo={todo}
-                  onDelete={() => deleteInboxTodo(todo.id)}
+                  onDelete={() => removeInboxTodo(todo.id)}
                   onTogglePin={() => toggleInboxPin(todo.id)}
                   onEditText={(newText) => editInboxTodoText(todo.id, newText)}
                 />
@@ -763,8 +655,7 @@ export default function Home() {
               <button
                 className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
                 onClick={() => {
-                  setCoins((prev) => prev + 1);
-                  setCompletedTodos([]);
+                  rewardCoins(1);
                   setShowCoinRewardModal(false);
                 }}
               >
