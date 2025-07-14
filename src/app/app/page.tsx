@@ -375,7 +375,7 @@ const GlassJar = ({
   todayString: string;
 }) => (
   <div className="flex items-end justify-center">
-    <DroppableArea id="glass-jar" className="w-48 h-80">
+    <DroppableArea id="glass-jar" className="w-60 h-90">
       <div
         className="w-full h-full relative cursor-pointer transition-all duration-300"
         style={{
@@ -391,7 +391,7 @@ const GlassJar = ({
             radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 50%),
             radial-gradient(ellipse at 70% 80%, rgba(148, 163, 184, 0.3) 0%, transparent 50%)
           `,
-          borderRadius: "20px 20px 90px 90px",
+          borderRadius: "15px 15px 55px 55px",
           border: "4px solid rgba(148, 163, 184, 0.3)",
           boxShadow: `
             inset 12px 0 24px rgba(255, 255, 255, 0.4),
@@ -736,7 +736,7 @@ export default function AppPage() {
         </div>
 
         {/* 유리병 - 책상 위에 별도로 배치 */}
-        <div className="absolute bottom-0 right-0 p-6">
+        <div className="absolute bottom-10 right-10 p-6">
           <GlassJar
             completedTodos={completedTodos}
             completedCount={completedCount}
