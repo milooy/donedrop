@@ -1,5 +1,5 @@
-import { supabase } from "./supabase";
 import { Todo } from "@/hooks/useSupabaseData";
+import { supabase } from "./supabase";
 
 export interface TodoDatabase {
   id: number;

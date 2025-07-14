@@ -1,26 +1,25 @@
-import { useState, useEffect } from 'react';
-import { User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
 import {
-  fetchTodos,
-  fetchInboxTodos,
-  fetchCompletedTodos,
-  fetchUserSettings,
-  upsertUserSettings,
-  insertTodo,
-  insertInboxTodo,
-  insertCompletedTodo,
-  updateTodo,
-  updateInboxTodo,
-  deleteTodo,
-  deleteInboxTodo,
   clearCompletedTodos,
+  deleteInboxTodo,
+  deleteTodo,
+  fetchCompletedTodos,
+  fetchInboxTodos,
+  fetchTodos,
+  fetchUserSettings,
+  insertInboxTodo,
+  insertTodo,
   moveTodoToCompleted,
   moveTodoToInbox,
   moveTodoToMain,
-} from '@/lib/database';
+  updateInboxTodo,
+  updateTodo,
+  upsertUserSettings,
+} from "@/lib/database";
+import { supabase } from "@/lib/supabase";
+import { User } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
 
-export type PostItColor = 'yellow' | 'pink' | 'blue';
+export type PostItColor = "yellow" | "pink" | "blue";
 
 export interface Todo {
   id: number;
@@ -35,34 +34,39 @@ export interface Todo {
 export const useSupabaseData = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Data states
   const [todos, setTodos] = useState<Todo[]>([]);
   const [inboxTodos, setInboxTodos] = useState<Todo[]>([]);
   const [completedTodos, setCompletedTodos] = useState<Todo[]>([]);
-  const [selectedColor, setSelectedColor] = useState<PostItColor>('yellow');
-  const [inboxSelectedColor, setInboxSelectedColor] = useState<PostItColor>('yellow');
+  const [selectedColor, setSelectedColor] = useState<PostItColor>("yellow");
+  const [inboxSelectedColor, setInboxSelectedColor] =
+    useState<PostItColor>("yellow");
   const [coins, setCoins] = useState(0);
 
   // Initialize auth
   useEffect(() => {
     const initAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setUser(user);
       setLoading(false);
     };
 
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
-      if (event === 'SIGNED_OUT') {
+      if (event === "SIGNED_OUT") {
         // Clear data on sign out
         setTodos([]);
         setInboxTodos([]);
         setCompletedTodos([]);
-        setSelectedColor('yellow');
-        setInboxSelectedColor('yellow');
+        setSelectedColor("yellow");
+        setInboxSelectedColor("yellow");
         setCoins(0);
       }
     });
@@ -82,14 +86,15 @@ export const useSupabaseData = () => {
 
     try {
       setLoading(true);
-      
+
       // Load all data in parallel
-      const [todosData, inboxData, completedData, settingsData] = await Promise.all([
-        fetchTodos(user.id),
-        fetchInboxTodos(user.id),
-        fetchCompletedTodos(user.id),
-        fetchUserSettings(user.id),
-      ]);
+      const [todosData, inboxData, completedData, settingsData] =
+        await Promise.all([
+          fetchTodos(user.id),
+          fetchInboxTodos(user.id),
+          fetchCompletedTodos(user.id),
+          fetchUserSettings(user.id),
+        ]);
 
       setTodos(todosData);
       setInboxTodos(inboxData);
@@ -101,7 +106,7 @@ export const useSupabaseData = () => {
         setCoins(settingsData.coins);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error("Error loading data:", error);
     } finally {
       setLoading(false);
     }
@@ -121,9 +126,9 @@ export const useSupabaseData = () => {
 
     try {
       const savedTodo = await insertTodo(newTodo, user.id);
-      setTodos(prev => [savedTodo, ...prev]);
+      setTodos((prev) => [savedTodo, ...prev]);
     } catch (error) {
-      console.error('Error adding todo:', error);
+      console.error("Error adding todo:", error);
     }
   };
 
@@ -140,9 +145,9 @@ export const useSupabaseData = () => {
 
     try {
       const savedTodo = await insertInboxTodo(newTodo, user.id);
-      setInboxTodos(prev => [savedTodo, ...prev]);
+      setInboxTodos((prev) => [savedTodo, ...prev]);
     } catch (error) {
-      console.error('Error adding inbox todo:', error);
+      console.error("Error adding inbox todo:", error);
     }
   };
 
@@ -151,11 +156,13 @@ export const useSupabaseData = () => {
 
     try {
       await updateTodo(todoId, { text: newText }, user.id);
-      setTodos(prev => prev.map(todo => 
-        todo.id === todoId ? { ...todo, text: newText } : todo
-      ));
+      setTodos((prev) =>
+        prev.map((todo) =>
+          todo.id === todoId ? { ...todo, text: newText } : todo
+        )
+      );
     } catch (error) {
-      console.error('Error updating todo:', error);
+      console.error("Error updating todo:", error);
     }
   };
 
@@ -164,18 +171,20 @@ export const useSupabaseData = () => {
 
     try {
       await updateInboxTodo(todoId, { text: newText }, user.id);
-      setInboxTodos(prev => prev.map(todo => 
-        todo.id === todoId ? { ...todo, text: newText } : todo
-      ));
+      setInboxTodos((prev) =>
+        prev.map((todo) =>
+          todo.id === todoId ? { ...todo, text: newText } : todo
+        )
+      );
     } catch (error) {
-      console.error('Error updating inbox todo:', error);
+      console.error("Error updating inbox todo:", error);
     }
   };
 
   const togglePin = async (todoId: number) => {
     if (!user) return;
 
-    const todo = todos.find(t => t.id === todoId);
+    const todo = todos.find((t) => t.id === todoId);
     if (!todo) return;
 
     const updates = {
@@ -185,18 +194,18 @@ export const useSupabaseData = () => {
 
     try {
       await updateTodo(todoId, updates, user.id);
-      setTodos(prev => prev.map(t => 
-        t.id === todoId ? { ...t, ...updates } : t
-      ));
+      setTodos((prev) =>
+        prev.map((t) => (t.id === todoId ? { ...t, ...updates } : t))
+      );
     } catch (error) {
-      console.error('Error toggling pin:', error);
+      console.error("Error toggling pin:", error);
     }
   };
 
   const toggleInboxPin = async (todoId: number) => {
     if (!user) return;
 
-    const todo = inboxTodos.find(t => t.id === todoId);
+    const todo = inboxTodos.find((t) => t.id === todoId);
     if (!todo) return;
 
     const updates = {
@@ -206,11 +215,11 @@ export const useSupabaseData = () => {
 
     try {
       await updateInboxTodo(todoId, updates, user.id);
-      setInboxTodos(prev => prev.map(t => 
-        t.id === todoId ? { ...t, ...updates } : t
-      ));
+      setInboxTodos((prev) =>
+        prev.map((t) => (t.id === todoId ? { ...t, ...updates } : t))
+      );
     } catch (error) {
-      console.error('Error toggling inbox pin:', error);
+      console.error("Error toggling inbox pin:", error);
     }
   };
 
@@ -219,9 +228,9 @@ export const useSupabaseData = () => {
 
     try {
       await deleteTodo(todoId, user.id);
-      setTodos(prev => prev.filter(t => t.id !== todoId));
+      setTodos((prev) => prev.filter((t) => t.id !== todoId));
     } catch (error) {
-      console.error('Error deleting todo:', error);
+      console.error("Error deleting todo:", error);
     }
   };
 
@@ -230,9 +239,9 @@ export const useSupabaseData = () => {
 
     try {
       await deleteInboxTodo(todoId, user.id);
-      setInboxTodos(prev => prev.filter(t => t.id !== todoId));
+      setInboxTodos((prev) => prev.filter((t) => t.id !== todoId));
     } catch (error) {
-      console.error('Error deleting inbox todo:', error);
+      console.error("Error deleting inbox todo:", error);
     }
   };
 
@@ -240,18 +249,22 @@ export const useSupabaseData = () => {
     if (!user) return;
 
     try {
-      await moveTodoToCompleted(todo, user.id, fromInbox ? 'inbox_todos' : 'todos');
-      
+      await moveTodoToCompleted(
+        todo,
+        user.id,
+        fromInbox ? "inbox_todos" : "todos"
+      );
+
       const completedTodo = { ...todo, completedAt: Date.now() };
-      setCompletedTodos(prev => [completedTodo, ...prev]);
-      
+      setCompletedTodos((prev) => [completedTodo, ...prev]);
+
       if (fromInbox) {
-        setInboxTodos(prev => prev.filter(t => t.id !== todo.id));
+        setInboxTodos((prev) => prev.filter((t) => t.id !== todo.id));
       } else {
-        setTodos(prev => prev.filter(t => t.id !== todo.id));
+        setTodos((prev) => prev.filter((t) => t.id !== todo.id));
       }
     } catch (error) {
-      console.error('Error completing todo:', error);
+      console.error("Error completing todo:", error);
     }
   };
 
@@ -260,10 +273,10 @@ export const useSupabaseData = () => {
 
     try {
       await moveTodoToInbox(todo, user.id);
-      setTodos(prev => prev.filter(t => t.id !== todo.id));
-      setInboxTodos(prev => [todo, ...prev]);
+      setTodos((prev) => prev.filter((t) => t.id !== todo.id));
+      setInboxTodos((prev) => [todo, ...prev]);
     } catch (error) {
-      console.error('Error moving to inbox:', error);
+      console.error("Error moving to inbox:", error);
     }
   };
 
@@ -272,10 +285,10 @@ export const useSupabaseData = () => {
 
     try {
       await moveTodoToMain(todo, user.id);
-      setInboxTodos(prev => prev.filter(t => t.id !== todo.id));
-      setTodos(prev => [todo, ...prev]);
+      setInboxTodos((prev) => prev.filter((t) => t.id !== todo.id));
+      setTodos((prev) => [todo, ...prev]);
     } catch (error) {
-      console.error('Error moving to main:', error);
+      console.error("Error moving to main:", error);
     }
   };
 
@@ -286,11 +299,11 @@ export const useSupabaseData = () => {
       const newCoins = coins + amount;
       await upsertUserSettings(user.id, { coins: newCoins });
       await clearCompletedTodos(user.id);
-      
+
       setCoins(newCoins);
       setCompletedTodos([]);
     } catch (error) {
-      console.error('Error rewarding coins:', error);
+      console.error("Error rewarding coins:", error);
     }
   };
 
@@ -301,7 +314,7 @@ export const useSupabaseData = () => {
       await upsertUserSettings(user.id, { selected_color: color });
       setSelectedColor(color);
     } catch (error) {
-      console.error('Error updating selected color:', error);
+      console.error("Error updating selected color:", error);
     }
   };
 
@@ -312,7 +325,7 @@ export const useSupabaseData = () => {
       await upsertUserSettings(user.id, { inbox_selected_color: color });
       setInboxSelectedColor(color);
     } catch (error) {
-      console.error('Error updating inbox selected color:', error);
+      console.error("Error updating inbox selected color:", error);
     }
   };
 
@@ -320,13 +333,13 @@ export const useSupabaseData = () => {
   const signInWithGoogle = async () => {
     try {
       await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
     } catch (error) {
-      console.error('Error signing in:', error);
+      console.error("Error signing in:", error);
     }
   };
 
@@ -334,7 +347,7 @@ export const useSupabaseData = () => {
     try {
       await supabase.auth.signOut();
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Error signing out:", error);
     }
   };
 
@@ -344,7 +357,7 @@ export const useSupabaseData = () => {
     loading,
     signInWithGoogle,
     signOut,
-    
+
     // Data
     todos,
     inboxTodos,
@@ -352,7 +365,7 @@ export const useSupabaseData = () => {
     selectedColor,
     inboxSelectedColor,
     coins,
-    
+
     // Actions
     addTodo,
     addInboxTodo,
