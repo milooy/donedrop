@@ -27,6 +27,7 @@ import {
   useDraggable,
   useDroppable,
 } from "@dnd-kit/core";
+import { User } from "@supabase/supabase-js";
 
 const colorStyles = {
   yellow: "border-yellow-300 bg-yellow-100",
@@ -91,9 +92,19 @@ const PostItInput = ({
     }
   };
 
+  // 랜덤 기울기 생성 (컴포넌트 렌더링 시 고정)
+  const [randomRotation] = useState(() => Math.random() * 4 - 2); // -2도 ~ 2도
+
   return (
     <div
-      className={`w-32 h-32 border-2 ${colorStyles[selectedColor]} p-2 shadow-md transform hover:scale-105 transition-transform`}
+      className={`w-32 h-32 border-2 ${colorStyles[selectedColor]} p-2 hover:scale-105 transition-transform`}
+      style={{
+        transform: `rotate(${randomRotation}deg)`,
+        boxShadow: `
+          0 4px 8px rgba(0, 0, 0, 0.1),
+          0 2px 4px rgba(0, 0, 0, 0.06)
+        `,
+      }}
     >
       <form onSubmit={handleSubmit} className="h-full flex flex-col">
         <ColorPalette
@@ -236,41 +247,56 @@ const PostItItem = ({
   onDelete: () => void;
   onTogglePin: () => void;
   onEditText: (newText: string) => void;
-}) => (
-  <DraggablePostIt todo={todo}>
-    <div
-      className={`group relative w-32 h-32 border-2 ${
-        colorStyles[todo.color]
-      } p-2 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform ${
-        todo.isPinned ? "shadow-lg" : ""
-      }`}
-    >
-      {/* Pin 아이콘 */}
-      <button
-        className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-          todo.isPinned
-            ? "bg-red-500 text-white shadow-md scale-110"
-            : "opacity-0 group-hover:opacity-100 bg-gray-300 text-gray-500 hover:bg-red-400 hover:text-white"
+}) => {
+  // 할일 ID 기반 일관된 랜덤 기울기 생성
+  const rotation = ((todo.id * 37) % 100) * 0.08 - 4; // -4도 ~ 4도 범위
+
+  return (
+    <DraggablePostIt todo={todo}>
+      <div
+        className={`group relative w-32 h-32 border-2 ${
+          colorStyles[todo.color]
+        } p-2 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform ${
+          todo.isPinned ? "shadow-lg" : ""
         }`}
-        onClick={onTogglePin}
-        onPointerDown={(e) => e.stopPropagation()}
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          boxShadow: todo.isPinned
+            ? `0 6px 12px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.1)`
+            : `0 4px 8px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)`,
+        }}
       >
-        {todo.isPinned ? "📌" : "📍"}
-      </button>
+        {/* Pin 아이콘 */}
+        <button
+          className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            todo.isPinned
+              ? "bg-red-500 text-white shadow-md scale-110"
+              : "opacity-0 group-hover:opacity-100 bg-gray-300 text-gray-500 hover:bg-red-400 hover:text-white"
+          }`}
+          onClick={onTogglePin}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {todo.isPinned ? "📌" : "📍"}
+        </button>
 
-      <EditableText text={todo.text} onEdit={onEditText} className="text-sm" />
+        <EditableText
+          text={todo.text}
+          onEdit={onEditText}
+          className="text-sm"
+        />
 
-      {/* 삭제 버튼 */}
-      <button
-        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
-        onClick={onDelete}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        ×
-      </button>
-    </div>
-  </DraggablePostIt>
-);
+        {/* 삭제 버튼 */}
+        <button
+          className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+          onClick={onDelete}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          ×
+        </button>
+      </div>
+    </DraggablePostIt>
+  );
+};
 
 // 인박스 아이템 컴포넌트
 const InboxItem = ({
@@ -283,41 +309,56 @@ const InboxItem = ({
   onDelete: () => void;
   onTogglePin: () => void;
   onEditText: (newText: string) => void;
-}) => (
-  <DraggablePostIt todo={todo}>
-    <div
-      className={`group relative w-32 h-32 border-2 ${
-        colorStyles[todo.color]
-      } p-2 flex-shrink-0 cursor-grab active:cursor-grabbing shadow-md transform hover:scale-105 transition-transform ${
-        todo.isPinned ? "shadow-lg" : ""
-      }`}
-    >
-      {/* Pin 아이콘 */}
-      <button
-        className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-          todo.isPinned
-            ? "bg-red-500 text-white shadow-md scale-110"
-            : "opacity-0 group-hover:opacity-100 bg-gray-300 text-gray-500 hover:bg-red-400 hover:text-white"
+}) => {
+  // 할일 ID 기반 일관된 랜더 기울기 생성
+  const rotation = ((todo.id * 23) % 100) * 0.06 - 3; // -3도 ~ 3도 범위
+
+  return (
+    <DraggablePostIt todo={todo}>
+      <div
+        className={`group relative w-32 h-32 border-2 ${
+          colorStyles[todo.color]
+        } p-2 flex-shrink-0 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform ${
+          todo.isPinned ? "shadow-lg" : ""
         }`}
-        onClick={onTogglePin}
-        onPointerDown={(e) => e.stopPropagation()}
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          boxShadow: todo.isPinned
+            ? `0 6px 12px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.1)`
+            : `0 4px 8px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)`,
+        }}
       >
-        {todo.isPinned ? "📌" : "📍"}
-      </button>
+        {/* Pin 아이콘 */}
+        <button
+          className={`absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            todo.isPinned
+              ? "bg-red-500 text-white shadow-md scale-110"
+              : "opacity-0 group-hover:opacity-100 bg-gray-300 text-gray-500 hover:bg-red-400 hover:text-white"
+          }`}
+          onClick={onTogglePin}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {todo.isPinned ? "📌" : "📍"}
+        </button>
 
-      <EditableText text={todo.text} onEdit={onEditText} className="text-sm" />
+        <EditableText
+          text={todo.text}
+          onEdit={onEditText}
+          className="text-sm"
+        />
 
-      {/* 삭제 버튼 */}
-      <button
-        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
-        onClick={onDelete}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        ×
-      </button>
-    </div>
-  </DraggablePostIt>
-);
+        {/* 삭제 버튼 */}
+        <button
+          className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+          onClick={onDelete}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          ×
+        </button>
+      </div>
+    </DraggablePostIt>
+  );
+};
 
 // 유리병 컴포넌트
 const GlassJar = ({
@@ -333,23 +374,35 @@ const GlassJar = ({
   isClient: boolean;
   todayString: string;
 }) => (
-  <div className="w-80 p-8 bg-white flex items-center justify-center">
+  <div className="w-80 p-6 bg-white flex items-center justify-center">
     <DroppableArea id="glass-jar" className="w-48 h-80">
       <div
         className="w-full h-full relative cursor-pointer transition-all duration-300"
         style={{
-          background: `linear-gradient(135deg, 
-            rgba(255, 255, 255, 0.9) 0%, 
-            rgba(248, 250, 252, 0.7) 30%, 
-            rgba(241, 245, 249, 0.5) 70%, 
-            rgba(226, 232, 240, 0.3) 100%)`,
-          borderRadius: "10px 10px 80px 80px",
-          border: "3px solid rgba(203, 213, 225, 0.8)",
-          boxShadow: `
-            inset 8px 0 16px rgba(255, 255, 255, 0.3),
-            inset -8px 0 16px rgba(148, 163, 184, 0.2),
-            8px 8px 24px rgba(148, 163, 184, 0.4)
+          background: `
+            linear-gradient(135deg, 
+              rgba(255, 255, 255, 0.95) 0%, 
+              rgba(248, 250, 252, 0.85) 20%, 
+              rgba(241, 245, 249, 0.75) 40%, 
+              rgba(226, 232, 240, 0.65) 60%, 
+              rgba(203, 213, 225, 0.55) 80%, 
+              rgba(148, 163, 184, 0.45) 100%
+            ),
+            radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 50%),
+            radial-gradient(ellipse at 70% 80%, rgba(148, 163, 184, 0.3) 0%, transparent 50%)
           `,
+          borderRadius: "20px 20px 90px 90px",
+          border: "4px solid rgba(148, 163, 184, 0.3)",
+          boxShadow: `
+            inset 12px 0 24px rgba(255, 255, 255, 0.4),
+            inset -12px 0 24px rgba(148, 163, 184, 0.25),
+            inset 0 8px 16px rgba(255, 255, 255, 0.3),
+            inset 0 -8px 16px rgba(148, 163, 184, 0.2),
+            0 12px 32px rgba(148, 163, 184, 0.3),
+            0 6px 16px rgba(148, 163, 184, 0.2),
+            0 3px 8px rgba(148, 163, 184, 0.1)
+          `,
+          backdropFilter: "blur(1px)",
         }}
         onClick={onClick}
       >
@@ -411,11 +464,136 @@ const GlassJar = ({
   </div>
 );
 
+// 메모보드 프레임 명함 컴포넌트
+const FrameBusinessCard = ({
+  user,
+  coins,
+  onSignOut,
+}: {
+  user: User | null;
+  coins: number;
+  onSignOut: () => void;
+}) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  const getUserDisplayName = () => {
+    return user?.user_metadata?.full_name || user?.email || "사용자";
+  };
+
+  const getUserAvatar = () => {
+    return user?.user_metadata?.avatar_url || null;
+  };
+
+  return (
+    <div className="absolute top-4 right-6 z-10">
+      <div className="relative">
+        {/* 클립 */}
+        <div className="absolute -top-3 -left-3 w-7 h-7 bg-gradient-to-br from-gray-500 to-gray-700 rounded-full shadow-lg z-20 flex items-center justify-center transform rotate-12">
+          <div className="w-4 h-4 bg-gray-300 rounded-full"></div>
+        </div>
+
+        {/* 명함 컨테이너 */}
+        <div
+          className="relative w-64 h-36 cursor-pointer transform rotate-1"
+          onClick={() => setIsFlipped(!isFlipped)}
+          style={{ perspective: "1200px" }}
+        >
+          {/* 명함 앞면 (기본 상태) */}
+          <div
+            className="absolute inset-0 bg-white rounded-xl transition-transform duration-500"
+            style={{
+              backfaceVisibility: "hidden",
+              transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+              boxShadow: `
+                0 8px 24px rgba(0, 0, 0, 0.15),
+                0 4px 12px rgba(0, 0, 0, 0.12),
+                0 2px 6px rgba(0, 0, 0, 0.08)
+              `,
+            }}
+          >
+            <div className="p-5 h-full flex flex-col justify-between">
+              <div className="flex items-center gap-4">
+                {getUserAvatar() ? (
+                  <img
+                    src={getUserAvatar()}
+                    alt="Profile"
+                    className="w-12 h-12 rounded-full ring-2 ring-gray-200"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm ring-2 ring-gray-200">
+                    {getUserDisplayName().charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-gray-900 truncate">
+                    {getUserDisplayName()}
+                  </div>
+                  <div className="text-xs text-gray-500 truncate">
+                    {user?.email}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <span className="text-xl">🪙</span>
+                <div className="text-right">
+                  <div className="font-bold text-lg text-yellow-600">
+                    {coins}
+                  </div>
+                  <div className="text-xs text-gray-600">코인</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 명함 뒷면 (메뉴) */}
+          <div
+            className="absolute inset-0 bg-white rounded-xl transition-transform duration-500"
+            style={{
+              backfaceVisibility: "hidden",
+              transform: isFlipped ? "rotateY(0deg)" : "rotateY(180deg)",
+              boxShadow: `
+                0 8px 24px rgba(0, 0, 0, 0.15),
+                0 4px 12px rgba(0, 0, 0, 0.12),
+                0 2px 6px rgba(0, 0, 0, 0.08)
+              `,
+            }}
+          >
+            <div className="p-5 h-full flex flex-col justify-center space-y-4">
+              <button
+                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-3"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log("Settings clicked");
+                }}
+              >
+                <span className="text-lg">⚙️</span>
+                <span className="font-medium">설정</span>
+              </button>
+              <button
+                className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-3"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSignOut();
+                }}
+              >
+                <span className="text-lg">🚪</span>
+                <span className="font-medium">로그아웃</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function AppPage() {
   // Supabase 데이터 훅
   const {
     user,
     loading,
+    signOut,
     todos,
     inboxTodos,
     completedTodos,
@@ -531,14 +709,8 @@ export default function AppPage() {
       </DragOverlay>
 
       <div className="min-h-screen flex flex-col bg-gray-50">
-        {/* 우상단 코인 표시 */}
-        <div className="absolute top-4 right-4 z-10">
-          <div className="bg-white rounded-lg shadow-md px-4 py-2 flex items-center gap-2">
-            <span className="text-2xl">🪙</span>
-            <span className="font-bold text-lg text-yellow-600">{coins}</span>
-            <span className="text-sm text-gray-600">코인</span>
-          </div>
-        </div>
+        {/* 메모보드 프레임 명함 */}
+        <FrameBusinessCard user={user} coins={coins} onSignOut={signOut} />
 
         <div className="flex flex-1">
           {/* 메인 보드 */}
