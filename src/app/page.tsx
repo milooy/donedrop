@@ -6,7 +6,7 @@ import LoginScreen from "@/components/LoginScreen";
 
 export default function Home() {
   // Supabase 데이터 훅
-  const { user, loading, signInWithGoogle } = useSupabaseData();
+  const { user, loading, signInWithGoogle, signInWithGitHub } = useSupabaseData();
 
   // 인증된 사용자는 앱 페이지로 리다이렉트
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function Home() {
 
   // 인증되지 않은 사용자에게 로그인 화면 표시
   if (!user) {
-    return <LoginScreen onSignIn={signInWithGoogle} />;
+    return <LoginScreen onSignIn={signInWithGoogle} onGitHubSignIn={signInWithGitHub} />;
   }
 
   // 인증된 사용자는 리다이렉트 되므로 빈 화면

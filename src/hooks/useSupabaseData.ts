@@ -343,6 +343,20 @@ export const useSupabaseData = () => {
     }
   };
 
+  // Sign in with GitHub
+  const signInWithGitHub = async () => {
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider: "github",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+    } catch (error) {
+      console.error("Error signing in with GitHub:", error);
+    }
+  };
+
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -356,6 +370,7 @@ export const useSupabaseData = () => {
     user,
     loading,
     signInWithGoogle,
+    signInWithGitHub,
     signOut,
 
     // Data

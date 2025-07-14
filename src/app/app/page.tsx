@@ -105,13 +105,20 @@ const PostItInput = ({
           0 4px 8px rgba(0, 0, 0, 0.15),
           0 2px 4px rgba(0, 0, 0, 0.1)
         `,
-        background: selectedColor === 'yellow' 
-          ? '#FFFF88'
-          : selectedColor === 'pink' 
-          ? '#FFB3BA'
-          : '#87CEEB',
-        border: `2px solid ${selectedColor === 'yellow' ? '#e6e600' : selectedColor === 'pink' ? '#ff9999' : '#70b8d9'}`,
-        borderRadius: '2px'
+        background:
+          selectedColor === "yellow"
+            ? "#FFFF88"
+            : selectedColor === "pink"
+            ? "#FFB3BA"
+            : "#87CEEB",
+        border: `2px solid ${
+          selectedColor === "yellow"
+            ? "#e6e600"
+            : selectedColor === "pink"
+            ? "#ff9999"
+            : "#70b8d9"
+        }`,
+        borderRadius: "2px",
       }}
     >
       <form onSubmit={handleSubmit} className="h-full flex flex-col">
@@ -272,13 +279,20 @@ const PostItItem = ({
           boxShadow: todo.isPinned
             ? `0 12px 24px rgba(0, 0, 0, 0.3), 0 6px 12px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.1)`
             : `0 8px 16px rgba(0, 0, 0, 0.25), 0 4px 8px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)`,
-          background: todo.color === 'yellow' 
-            ? '#FFFF88'
-            : todo.color === 'pink' 
-            ? '#FFB3BA'
-            : '#87CEEB',
-          border: `2px solid ${todo.color === 'yellow' ? '#e6e600' : todo.color === 'pink' ? '#ff9999' : '#70b8d9'}`,
-          borderRadius: '2px'
+          background:
+            todo.color === "yellow"
+              ? "#FFFF88"
+              : todo.color === "pink"
+              ? "#FFB3BA"
+              : "#87CEEB",
+          border: `2px solid ${
+            todo.color === "yellow"
+              ? "#e6e600"
+              : todo.color === "pink"
+              ? "#ff9999"
+              : "#70b8d9"
+          }`,
+          borderRadius: "2px",
         }}
       >
         {/* Pin 아이콘 */}
@@ -341,13 +355,20 @@ const InboxItem = ({
           boxShadow: todo.isPinned
             ? `0 12px 24px rgba(0, 0, 0, 0.3), 0 6px 12px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.1)`
             : `0 8px 16px rgba(0, 0, 0, 0.25), 0 4px 8px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)`,
-          background: todo.color === 'yellow' 
-            ? '#FFFF88'
-            : todo.color === 'pink' 
-            ? '#FFB3BA'
-            : '#87CEEB',
-          border: `2px solid ${todo.color === 'yellow' ? '#e6e600' : todo.color === 'pink' ? '#ff9999' : '#70b8d9'}`,
-          borderRadius: '2px'
+          background:
+            todo.color === "yellow"
+              ? "#FFFF88"
+              : todo.color === "pink"
+              ? "#FFB3BA"
+              : "#87CEEB",
+          border: `2px solid ${
+            todo.color === "yellow"
+              ? "#e6e600"
+              : todo.color === "pink"
+              ? "#ff9999"
+              : "#70b8d9"
+          }`,
+          borderRadius: "2px",
         }}
       >
         {/* Pin 아이콘 */}
@@ -430,7 +451,7 @@ const GlassJar = ({
             0 40px 100px rgba(29, 78, 216, 0.1)
           `,
           backdropFilter: "blur(2px)",
-          filter: "drop-shadow(0 10px 30px rgba(0, 0, 0, 0.2))"
+          filter: "drop-shadow(0 10px 30px rgba(0, 0, 0, 0.2))",
         }}
         onClick={onClick}
       >
@@ -513,16 +534,16 @@ const FrameBusinessCard = ({
   };
 
   return (
-    <div className="absolute top-4 right-8 z-10">
+    <div className="absolute top-4 right-4 z-10">
       <div className="relative">
         {/* 클립 */}
-        <div className="absolute -top-3 -left-3 w-7 h-7 bg-gradient-to-br from-gray-500 to-gray-700 rounded-full shadow-lg z-20 flex items-center justify-center transform rotate-12">
-          <div className="w-4 h-4 bg-gray-300 rounded-full"></div>
+        <div className="absolute -top-2 -left-2 w-5 h-5 bg-gradient-to-br from-gray-500 to-gray-700 rounded-full shadow-lg z-20 flex items-center justify-center transform rotate-12">
+          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
         </div>
 
-        {/* 명함 컨테이너 */}
+        {/* 이름표 컨테이너 */}
         <div
-          className="relative w-48 h-28 cursor-pointer transform rotate-1"
+          className="relative w-32 h-20 cursor-pointer transform rotate-1"
           onClick={() => setIsFlipped(!isFlipped)}
           style={{ perspective: "1200px" }}
         >
@@ -539,35 +560,30 @@ const FrameBusinessCard = ({
               `,
             }}
           >
-            <div className="p-3 h-full flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className="p-2 h-full flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 {getUserAvatar() ? (
                   <img
                     src={getUserAvatar()}
                     alt="Profile"
-                    className="w-8 h-8 rounded-full ring-1 ring-gray-200"
+                    className="w-6 h-6 rounded-full ring-1 ring-gray-200"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xs ring-1 ring-gray-200">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xs ring-1 ring-gray-200">
                     {getUserDisplayName().charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-xs text-gray-900 truncate">
-                    {getUserDisplayName()}
-                  </div>
-                  <div className="text-xs text-gray-500 truncate">
-                    {user?.email}
+                    {getUserDisplayName().split(" ")[0]}
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-1 flex-shrink-0">
-                <span className="text-sm">🪙</span>
-                <div className="text-right">
-                  <div className="font-bold text-sm text-yellow-600 whitespace-nowrap">
-                    {coins}
-                  </div>
+                <span className="text-xs">🪙</span>
+                <div className="font-bold text-xs text-yellow-600 whitespace-nowrap">
+                  {coins}
                 </div>
               </div>
             </div>
@@ -586,25 +602,25 @@ const FrameBusinessCard = ({
               `,
             }}
           >
-            <div className="p-3 h-full flex flex-col justify-center space-y-2">
+            <div className="p-2 h-full flex flex-col justify-center space-y-1">
               <button
-                className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-2"
+                className="w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-1"
                 onClick={(e) => {
                   e.stopPropagation();
                   console.log("Settings clicked");
                 }}
               >
-                <span className="text-sm">⚙️</span>
+                <span className="text-xs">⚙️</span>
                 <span className="font-medium">설정</span>
               </button>
               <button
-                className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-md transition-colors flex items-center gap-2"
+                className="w-full text-left px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded-md transition-colors flex items-center gap-1"
                 onClick={(e) => {
                   e.stopPropagation();
                   onSignOut();
                 }}
               >
-                <span className="text-sm">🚪</span>
+                <span className="text-xs">🚪</span>
                 <span className="font-medium">로그아웃</span>
               </button>
             </div>
@@ -735,7 +751,7 @@ export default function AppPage() {
         )}
       </DragOverlay>
 
-      <div 
+      <div
         className="min-h-screen flex flex-col"
         style={{
           background: `
@@ -757,7 +773,7 @@ export default function AppPage() {
               rgba(139, 69, 19, 0.1) 1px
             )
           `,
-          backgroundSize: "100% 100%, 3px 3px"
+          backgroundSize: "100% 100%, 3px 3px",
         }}
       >
         {/* 메모보드 프레임 명함 */}
@@ -767,7 +783,7 @@ export default function AppPage() {
 
         <div className="flex flex-1">
           {/* 메인 보드 */}
-          <div 
+          <div
             className="flex-1 p-8"
             style={{
               background: `
@@ -785,28 +801,28 @@ export default function AppPage() {
               boxShadow: `
                 inset 0 0 20px rgba(139, 69, 19, 0.3),
                 0 8px 32px rgba(0, 0, 0, 0.4)
-              `
+              `,
             }}
           >
             <DroppableArea id="main-board" className="h-full">
-            <div className="p-6 relative">
-              <div className="flex flex-wrap gap-6 relative z-10">
-                <PostItInput
-                  selectedColor={selectedColor}
-                  onColorSelect={updateSelectedColor}
-                  onAddTodo={addTodo}
-                />
-                {sortedTodos.map((todo) => (
-                  <PostItItem
-                    key={todo.id}
-                    todo={todo}
-                    onDelete={() => removeTodo(todo.id)}
-                    onTogglePin={() => togglePin(todo.id)}
-                    onEditText={(newText) => editTodoText(todo.id, newText)}
+              <div className="p-6 relative">
+                <div className="flex flex-wrap gap-6 relative z-10">
+                  <PostItInput
+                    selectedColor={selectedColor}
+                    onColorSelect={updateSelectedColor}
+                    onAddTodo={addTodo}
                   />
-                ))}
+                  {sortedTodos.map((todo) => (
+                    <PostItItem
+                      key={todo.id}
+                      todo={todo}
+                      onDelete={() => removeTodo(todo.id)}
+                      onTogglePin={() => togglePin(todo.id)}
+                      onEditText={(newText) => editTodoText(todo.id, newText)}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
             </DroppableArea>
           </div>
         </div>
@@ -823,66 +839,57 @@ export default function AppPage() {
         </div>
 
         {/* 인박스 */}
-        <div 
+        <div
           className="h-48 p-6"
           style={{
             background: `
               linear-gradient(135deg, 
                 #92400e 0%, 
-                #a16207 20%, 
-                #ca8a04 40%, 
-                #eab308 60%, 
-                #facc15 80%, 
-                #fde047 100%
+                #a16207 100%, 
               ),
-              repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 2px,
-                rgba(146, 64, 14, 0.1) 2px,
-                rgba(146, 64, 14, 0.1) 4px
-              )
             `,
             backgroundSize: "100% 100%, 12px 12px",
             borderTop: "4px solid #78350f",
             boxShadow: `
               inset 0 4px 8px rgba(120, 53, 15, 0.3),
               0 -4px 16px rgba(0, 0, 0, 0.2)
-            `
+            `,
           }}
         >
           <DroppableArea id="inbox" className="h-full">
-          <div
-            className="flex gap-4 overflow-x-auto pb-4"
-            style={{ overflowClipMargin: "unset" }}
-          >
-            <PostItInput
-              selectedColor={inboxSelectedColor}
-              onColorSelect={updateInboxSelectedColor}
-              onAddTodo={addInboxTodo}
-            />
-            {inboxTodos
-              .sort((a, b) => {
-                // 핀 된 것들끼리는 pinnedAt 기준 최신순
-                if (a.isPinned && b.isPinned) {
-                  return (b.pinnedAt || 0) - (a.pinnedAt || 0);
-                }
-                // 핀 된 것이 일반 것보다 앞에
-                if (a.isPinned && !b.isPinned) return -1;
-                if (!a.isPinned && b.isPinned) return 1;
-                // 둘 다 핀 안된 것들은 생성일 기준 최신순
-                return b.createdAt - a.createdAt;
-              })
-              .map((todo) => (
-                <InboxItem
-                  key={todo.id}
-                  todo={todo}
-                  onDelete={() => removeInboxTodo(todo.id)}
-                  onTogglePin={() => toggleInboxPin(todo.id)}
-                  onEditText={(newText) => editInboxTodoText(todo.id, newText)}
-                />
-              ))}
-          </div>
+            <div
+              className="flex gap-4 overflow-x-auto pb-4"
+              style={{ overflowClipMargin: "unset" }}
+            >
+              <PostItInput
+                selectedColor={inboxSelectedColor}
+                onColorSelect={updateInboxSelectedColor}
+                onAddTodo={addInboxTodo}
+              />
+              {inboxTodos
+                .sort((a, b) => {
+                  // 핀 된 것들끼리는 pinnedAt 기준 최신순
+                  if (a.isPinned && b.isPinned) {
+                    return (b.pinnedAt || 0) - (a.pinnedAt || 0);
+                  }
+                  // 핀 된 것이 일반 것보다 앞에
+                  if (a.isPinned && !b.isPinned) return -1;
+                  if (!a.isPinned && b.isPinned) return 1;
+                  // 둘 다 핀 안된 것들은 생성일 기준 최신순
+                  return b.createdAt - a.createdAt;
+                })
+                .map((todo) => (
+                  <InboxItem
+                    key={todo.id}
+                    todo={todo}
+                    onDelete={() => removeInboxTodo(todo.id)}
+                    onTogglePin={() => toggleInboxPin(todo.id)}
+                    onEditText={(newText) =>
+                      editInboxTodoText(todo.id, newText)
+                    }
+                  />
+                ))}
+            </div>
           </DroppableArea>
         </div>
 
