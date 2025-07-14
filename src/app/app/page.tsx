@@ -101,9 +101,17 @@ const PostItInput = ({
       style={{
         transform: `rotate(${randomRotation}deg)`,
         boxShadow: `
-          0 4px 8px rgba(0, 0, 0, 0.1),
-          0 2px 4px rgba(0, 0, 0, 0.06)
+          0 8px 16px rgba(0, 0, 0, 0.25),
+          0 4px 8px rgba(0, 0, 0, 0.15),
+          0 2px 4px rgba(0, 0, 0, 0.1)
         `,
+        background: selectedColor === 'yellow' 
+          ? '#FFFF88'
+          : selectedColor === 'pink' 
+          ? '#FFB3BA'
+          : '#87CEEB',
+        border: `2px solid ${selectedColor === 'yellow' ? '#e6e600' : selectedColor === 'pink' ? '#ff9999' : '#70b8d9'}`,
+        borderRadius: '2px'
       }}
     >
       <form onSubmit={handleSubmit} className="h-full flex flex-col">
@@ -262,8 +270,15 @@ const PostItItem = ({
         style={{
           transform: `rotate(${rotation}deg)`,
           boxShadow: todo.isPinned
-            ? `0 6px 12px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.1)`
-            : `0 4px 8px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)`,
+            ? `0 12px 24px rgba(0, 0, 0, 0.3), 0 6px 12px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.1)`
+            : `0 8px 16px rgba(0, 0, 0, 0.25), 0 4px 8px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)`,
+          background: todo.color === 'yellow' 
+            ? '#FFFF88'
+            : todo.color === 'pink' 
+            ? '#FFB3BA'
+            : '#87CEEB',
+          border: `2px solid ${todo.color === 'yellow' ? '#e6e600' : todo.color === 'pink' ? '#ff9999' : '#70b8d9'}`,
+          borderRadius: '2px'
         }}
       >
         {/* Pin 아이콘 */}
@@ -324,8 +339,15 @@ const InboxItem = ({
         style={{
           transform: `rotate(${rotation}deg)`,
           boxShadow: todo.isPinned
-            ? `0 6px 12px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.1)`
-            : `0 4px 8px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)`,
+            ? `0 12px 24px rgba(0, 0, 0, 0.3), 0 6px 12px rgba(0, 0, 0, 0.2), 0 3px 6px rgba(0, 0, 0, 0.1)`
+            : `0 8px 16px rgba(0, 0, 0, 0.25), 0 4px 8px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)`,
+          background: todo.color === 'yellow' 
+            ? '#FFFF88'
+            : todo.color === 'pink' 
+            ? '#FFB3BA'
+            : '#87CEEB',
+          border: `2px solid ${todo.color === 'yellow' ? '#e6e600' : todo.color === 'pink' ? '#ff9999' : '#70b8d9'}`,
+          borderRadius: '2px'
         }}
       >
         {/* Pin 아이콘 */}
@@ -381,28 +403,34 @@ const GlassJar = ({
         style={{
           background: `
             linear-gradient(135deg, 
-              rgba(255, 255, 255, 0.95) 0%, 
-              rgba(248, 250, 252, 0.85) 20%, 
-              rgba(241, 245, 249, 0.75) 40%, 
-              rgba(226, 232, 240, 0.65) 60%, 
-              rgba(203, 213, 225, 0.55) 80%, 
-              rgba(148, 163, 184, 0.45) 100%
+              rgba(255, 255, 255, 0.95) 0%,
+              rgba(240, 248, 255, 0.9) 15%,
+              rgba(219, 234, 254, 0.85) 30%,
+              rgba(191, 219, 254, 0.8) 45%,
+              rgba(147, 197, 253, 0.75) 60%,
+              rgba(96, 165, 250, 0.7) 75%,
+              rgba(59, 130, 246, 0.65) 90%,
+              rgba(29, 78, 216, 0.6) 100%
             ),
-            radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 50%),
-            radial-gradient(ellipse at 70% 80%, rgba(148, 163, 184, 0.3) 0%, transparent 50%)
+            radial-gradient(ellipse at 25% 15%, rgba(255, 255, 255, 0.9) 0%, transparent 45%),
+            radial-gradient(ellipse at 75% 25%, rgba(255, 255, 255, 0.6) 0%, transparent 35%),
+            radial-gradient(ellipse at 40% 70%, rgba(59, 130, 246, 0.3) 0%, transparent 60%),
+            radial-gradient(ellipse at 80% 80%, rgba(29, 78, 216, 0.4) 0%, transparent 50%)
           `,
-          borderRadius: "15px 15px 55px 55px",
-          border: "4px solid rgba(148, 163, 184, 0.3)",
+          borderRadius: "18px 18px 60px 60px",
+          border: "3px solid rgba(59, 130, 246, 0.4)",
           boxShadow: `
-            inset 12px 0 24px rgba(255, 255, 255, 0.4),
-            inset -12px 0 24px rgba(148, 163, 184, 0.25),
-            inset 0 8px 16px rgba(255, 255, 255, 0.3),
-            inset 0 -8px 16px rgba(148, 163, 184, 0.2),
-            0 25px 60px rgba(0, 0, 0, 0.4),
-            0 15px 30px rgba(0, 0, 0, 0.3),
-            0 8px 20px rgba(0, 0, 0, 0.2)
+            inset 20px 0 40px rgba(255, 255, 255, 0.6),
+            inset -20px 0 40px rgba(59, 130, 246, 0.3),
+            inset 0 15px 30px rgba(255, 255, 255, 0.5),
+            inset 0 -15px 30px rgba(29, 78, 216, 0.25),
+            0 25px 80px rgba(0, 0, 0, 0.35),
+            0 15px 40px rgba(0, 0, 0, 0.25),
+            0 8px 20px rgba(0, 0, 0, 0.15),
+            0 40px 100px rgba(29, 78, 216, 0.1)
           `,
-          backdropFilter: "blur(1px)",
+          backdropFilter: "blur(2px)",
+          filter: "drop-shadow(0 10px 30px rgba(0, 0, 0, 0.2))"
         }}
         onClick={onClick}
       >
@@ -707,15 +735,62 @@ export default function AppPage() {
         )}
       </DragOverlay>
 
-      <div className="min-h-screen flex flex-col bg-gray-50">
+      <div 
+        className="min-h-screen flex flex-col"
+        style={{
+          background: `
+            linear-gradient(135deg, 
+              #654321 0%, 
+              #8B4513 15%, 
+              #A0522D 30%, 
+              #B8860B 45%, 
+              #CD853F 60%, 
+              #D2B48C 75%, 
+              #DEB887 90%, 
+              #F5DEB3 100%
+            ),
+            repeating-linear-gradient(
+              90deg,
+              transparent,
+              transparent 0.5px,
+              rgba(139, 69, 19, 0.1) 0.5px,
+              rgba(139, 69, 19, 0.1) 1px
+            )
+          `,
+          backgroundSize: "100% 100%, 3px 3px"
+        }}
+      >
         {/* 메모보드 프레임 명함 */}
-        <FrameBusinessCard user={user} coins={coins} onSignOut={signOut} />
+        <div className="relative z-20">
+          <FrameBusinessCard user={user} coins={coins} onSignOut={signOut} />
+        </div>
 
         <div className="flex flex-1">
           {/* 메인 보드 */}
-          <DroppableArea id="main-board" className="flex-1 p-8 bg-white">
-            <div className="p-6">
-              <div className="flex flex-wrap gap-6">
+          <div 
+            className="flex-1 p-8"
+            style={{
+              background: `
+                radial-gradient(circle at 20% 20%, #C4A484 0%, #D2B48C 25%, #BC9A6A 50%, #A0845C 75%, #8B7355 100%),
+                repeating-radial-gradient(circle at 60% 40%, 
+                  transparent 0%, 
+                  transparent 2px, 
+                  rgba(139, 115, 85, 0.1) 2px, 
+                  rgba(139, 115, 85, 0.1) 4px
+                )
+              `,
+              backgroundSize: "100% 100%, 8px 8px",
+              border: "8px solid #8B4513",
+              borderRadius: "4px",
+              boxShadow: `
+                inset 0 0 20px rgba(139, 69, 19, 0.3),
+                0 8px 32px rgba(0, 0, 0, 0.4)
+              `
+            }}
+          >
+            <DroppableArea id="main-board" className="h-full">
+            <div className="p-6 relative">
+              <div className="flex flex-wrap gap-6 relative z-10">
                 <PostItInput
                   selectedColor={selectedColor}
                   onColorSelect={updateSelectedColor}
@@ -732,11 +807,12 @@ export default function AppPage() {
                 ))}
               </div>
             </div>
-          </DroppableArea>
+            </DroppableArea>
+          </div>
         </div>
 
         {/* 유리병 - 책상 위에 별도로 배치 */}
-        <div className="absolute bottom-10 right-10 p-6">
+        <div className="absolute bottom-10 right-10 p-6 z-20">
           <GlassJar
             completedTodos={completedTodos}
             completedCount={completedCount}
@@ -747,7 +823,35 @@ export default function AppPage() {
         </div>
 
         {/* 인박스 */}
-        <DroppableArea id="inbox" className="h-48 p-6 bg-amber-800">
+        <div 
+          className="h-48 p-6"
+          style={{
+            background: `
+              linear-gradient(135deg, 
+                #92400e 0%, 
+                #a16207 20%, 
+                #ca8a04 40%, 
+                #eab308 60%, 
+                #facc15 80%, 
+                #fde047 100%
+              ),
+              repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 2px,
+                rgba(146, 64, 14, 0.1) 2px,
+                rgba(146, 64, 14, 0.1) 4px
+              )
+            `,
+            backgroundSize: "100% 100%, 12px 12px",
+            borderTop: "4px solid #78350f",
+            boxShadow: `
+              inset 0 4px 8px rgba(120, 53, 15, 0.3),
+              0 -4px 16px rgba(0, 0, 0, 0.2)
+            `
+          }}
+        >
+          <DroppableArea id="inbox" className="h-full">
           <div
             className="flex gap-4 overflow-x-auto pb-4"
             style={{ overflowClipMargin: "unset" }}
@@ -779,7 +883,8 @@ export default function AppPage() {
                 />
               ))}
           </div>
-        </DroppableArea>
+          </DroppableArea>
+        </div>
 
         {/* 완료된 할일 모달 */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
