@@ -374,7 +374,7 @@ const GlassJar = ({
   isClient: boolean;
   todayString: string;
 }) => (
-  <div className="w-80 p-6 bg-white flex items-center justify-center">
+  <div className="flex items-end justify-center">
     <DroppableArea id="glass-jar" className="w-48 h-80">
       <div
         className="w-full h-full relative cursor-pointer transition-all duration-300"
@@ -398,9 +398,9 @@ const GlassJar = ({
             inset -12px 0 24px rgba(148, 163, 184, 0.25),
             inset 0 8px 16px rgba(255, 255, 255, 0.3),
             inset 0 -8px 16px rgba(148, 163, 184, 0.2),
-            0 12px 32px rgba(148, 163, 184, 0.3),
-            0 6px 16px rgba(148, 163, 184, 0.2),
-            0 3px 8px rgba(148, 163, 184, 0.1)
+            0 25px 60px rgba(0, 0, 0, 0.4),
+            0 15px 30px rgba(0, 0, 0, 0.3),
+            0 8px 20px rgba(0, 0, 0, 0.2)
           `,
           backdropFilter: "blur(1px)",
         }}
@@ -485,7 +485,7 @@ const FrameBusinessCard = ({
   };
 
   return (
-    <div className="absolute top-4 right-6 z-10">
+    <div className="absolute top-4 right-8 z-10">
       <div className="relative">
         {/* 클립 */}
         <div className="absolute -top-3 -left-3 w-7 h-7 bg-gradient-to-br from-gray-500 to-gray-700 rounded-full shadow-lg z-20 flex items-center justify-center transform rotate-12">
@@ -494,7 +494,7 @@ const FrameBusinessCard = ({
 
         {/* 명함 컨테이너 */}
         <div
-          className="relative w-64 h-36 cursor-pointer transform rotate-1"
+          className="relative w-48 h-28 cursor-pointer transform rotate-1"
           onClick={() => setIsFlipped(!isFlipped)}
           style={{ perspective: "1200px" }}
         >
@@ -511,21 +511,21 @@ const FrameBusinessCard = ({
               `,
             }}
           >
-            <div className="p-5 h-full flex flex-col justify-between">
-              <div className="flex items-center gap-4">
+            <div className="p-3 h-full flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 {getUserAvatar() ? (
                   <img
                     src={getUserAvatar()}
                     alt="Profile"
-                    className="w-12 h-12 rounded-full ring-2 ring-gray-200"
+                    className="w-8 h-8 rounded-full ring-1 ring-gray-200"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm ring-2 ring-gray-200">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xs ring-1 ring-gray-200">
                     {getUserDisplayName().charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm text-gray-900 truncate">
+                  <div className="font-medium text-xs text-gray-900 truncate">
                     {getUserDisplayName()}
                   </div>
                   <div className="text-xs text-gray-500 truncate">
@@ -534,13 +534,12 @@ const FrameBusinessCard = ({
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2">
-                <span className="text-xl">🪙</span>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <span className="text-sm">🪙</span>
                 <div className="text-right">
-                  <div className="font-bold text-lg text-yellow-600">
+                  <div className="font-bold text-sm text-yellow-600 whitespace-nowrap">
                     {coins}
                   </div>
-                  <div className="text-xs text-gray-600">코인</div>
                 </div>
               </div>
             </div>
@@ -559,25 +558,25 @@ const FrameBusinessCard = ({
               `,
             }}
           >
-            <div className="p-5 h-full flex flex-col justify-center space-y-4">
+            <div className="p-3 h-full flex flex-col justify-center space-y-2">
               <button
-                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-3"
+                className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 rounded-md transition-colors flex items-center gap-2"
                 onClick={(e) => {
                   e.stopPropagation();
                   console.log("Settings clicked");
                 }}
               >
-                <span className="text-lg">⚙️</span>
+                <span className="text-sm">⚙️</span>
                 <span className="font-medium">설정</span>
               </button>
               <button
-                className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-3"
+                className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-md transition-colors flex items-center gap-2"
                 onClick={(e) => {
                   e.stopPropagation();
                   onSignOut();
                 }}
               >
-                <span className="text-lg">🚪</span>
+                <span className="text-sm">🚪</span>
                 <span className="font-medium">로그아웃</span>
               </button>
             </div>
@@ -734,8 +733,10 @@ export default function AppPage() {
               </div>
             </div>
           </DroppableArea>
+        </div>
 
-          {/* 유리병 */}
+        {/* 유리병 - 책상 위에 별도로 배치 */}
+        <div className="absolute bottom-0 right-0 p-6">
           <GlassJar
             completedTodos={completedTodos}
             completedCount={completedCount}
