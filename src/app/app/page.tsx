@@ -141,16 +141,18 @@ const PostItInput = ({
 const DraggablePostIt = ({
   todo,
   children,
+  from,
 }: {
   todo: Todo;
   children: React.ReactNode;
+  from: "main" | "inbox";
 }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
-      id: todo.id,
+      id: `${from}-${todo.id}`,
       data: {
         todo,
-        from: "main",
+        from,
       },
     });
 
@@ -267,7 +269,7 @@ const PostItItem = ({
   const rotation = ((todo.id * 37) % 100) * 0.08 - 4; // -4도 ~ 4도 범위
 
   return (
-    <DraggablePostIt todo={todo}>
+    <DraggablePostIt todo={todo} from="main">
       <div
         className={`group relative w-32 h-32 border-2 ${
           colorStyles[todo.color]
@@ -343,7 +345,7 @@ const InboxItem = ({
   const rotation = ((todo.id * 23) % 100) * 0.06 - 3; // -3도 ~ 3도 범위
 
   return (
-    <DraggablePostIt todo={todo}>
+    <DraggablePostIt todo={todo} from="inbox">
       <div
         className={`group relative w-32 h-32 border-2 ${
           colorStyles[todo.color]
@@ -652,6 +654,8 @@ export default function AppPage() {
     removeTodo,
     removeInboxTodo,
     completeTodo,
+    moveToInbox,
+    moveToMain,
     rewardCoins,
     updateSelectedColor,
     updateInboxSelectedColor,
@@ -710,13 +714,25 @@ export default function AppPage() {
 
     if (!over) return;
     const draggedTodo = active.data.current?.todo as Todo;
-    if (!draggedTodo) return;
+    const fromArea = active.data.current?.from as "main" | "inbox";
+    
+    if (!draggedTodo || !fromArea) return;
 
-    const isFromMain = todos.some((t) => t.id === draggedTodo.id);
-    const isFromInbox = inboxTodos.some((t) => t.id === draggedTodo.id);
-
-    if (over.id === "glass-jar" && (isFromMain || isFromInbox)) {
-      await completeTodo(draggedTodo, isFromInbox);
+    try {
+      // 유리병으로 드래그 (완료 처리)
+      if (over.id === "glass-jar") {
+        await completeTodo(draggedTodo, fromArea === "inbox");
+      }
+      // 메인 보드로 드래그 (inbox → main)
+      else if (over.id === "main-board" && fromArea === "inbox") {
+        await moveToMain(draggedTodo);
+      }
+      // 인박스로 드래그 (main → inbox)
+      else if (over.id === "inbox" && fromArea === "main") {
+        await moveToInbox(draggedTodo);
+      }
+    } catch (error) {
+      console.error("Drag and drop error:", error);
     }
   };
 

@@ -78,22 +78,39 @@ export const updateTodo = async (
   updates: Partial<Todo>,
   userId: string
 ) => {
+  // 업데이트할 데이터 구성
+  const updateData: Record<string, unknown> = {};
+
+  // text 업데이트
+  if (updates.text !== undefined) {
+    updateData.text = updates.text;
+  }
+
+  // pin 상태 업데이트
+  if (updates.isPinned !== undefined) {
+    updateData.is_pinned = updates.isPinned;
+  }
+
+  // pin 시간 업데이트
+  if (updates.pinnedAt !== undefined) {
+    updateData.pinned_at = updates.pinnedAt
+      ? new Date(updates.pinnedAt).toISOString()
+      : null;
+  }
+
+  // 업데이트 시간
+  updateData.updated_at = new Date().toISOString();
+
   const { data, error } = await supabase
     .from("todos")
-    .update({
-      ...updates,
-      is_pinned: updates.isPinned,
-      pinned_at: updates.pinnedAt
-        ? new Date(updates.pinnedAt).toISOString()
-        : null,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq("id", id)
     .eq("user_id", userId)
     .select()
     .single();
 
   if (error) throw error;
+
   return convertTodoFromDB(data);
 };
 
@@ -135,22 +152,39 @@ export const updateInboxTodo = async (
   updates: Partial<Todo>,
   userId: string
 ) => {
+  // 업데이트할 데이터 구성
+  const updateData: Record<string, unknown> = {};
+
+  // text 업데이트
+  if (updates.text !== undefined) {
+    updateData.text = updates.text;
+  }
+
+  // pin 상태 업데이트
+  if (updates.isPinned !== undefined) {
+    updateData.is_pinned = updates.isPinned;
+  }
+
+  // pin 시간 업데이트
+  if (updates.pinnedAt !== undefined) {
+    updateData.pinned_at = updates.pinnedAt
+      ? new Date(updates.pinnedAt).toISOString()
+      : null;
+  }
+
+  // 업데이트 시간
+  updateData.updated_at = new Date().toISOString();
+
   const { data, error } = await supabase
     .from("inbox_todos")
-    .update({
-      ...updates,
-      is_pinned: updates.isPinned,
-      pinned_at: updates.pinnedAt
-        ? new Date(updates.pinnedAt).toISOString()
-        : null,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq("id", id)
     .eq("user_id", userId)
     .select()
     .single();
 
   if (error) throw error;
+
   return convertTodoFromDB(data);
 };
 
