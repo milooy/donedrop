@@ -332,10 +332,15 @@ export const useSupabaseData = () => {
   // Sign in with Google
   const signInWithGoogle = async () => {
     try {
+      // 현재 환경에 따른 리다이렉트 URL 결정
+      const redirectTo = typeof window !== 'undefined' 
+        ? `${window.location.origin}/auth/callback`
+        : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`
+      
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo,
         },
       });
     } catch (error) {
@@ -346,10 +351,15 @@ export const useSupabaseData = () => {
   // Sign in with GitHub
   const signInWithGitHub = async () => {
     try {
+      // 현재 환경에 따른 리다이렉트 URL 결정
+      const redirectTo = typeof window !== 'undefined' 
+        ? `${window.location.origin}/auth/callback`
+        : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`
+      
       await supabase.auth.signInWithOAuth({
         provider: "github",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo,
         },
       });
     } catch (error) {
