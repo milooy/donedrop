@@ -64,7 +64,7 @@ export const PostItInput = memo<PostItInputProps>(({
           value={text}
           onChange={handleTextChange}
           placeholder="새 할일..."
-          className="flex-1 resize-none border-none outline-none bg-transparent text-sm mt-2"
+          className="flex-1 resize-none border-none outline-none bg-transparent text-sm mt-2 text-postit placeholder:text-postit placeholder:opacity-70"
           maxLength={APP_CONFIG.MAX_TODO_LENGTH}
         />
       </form>

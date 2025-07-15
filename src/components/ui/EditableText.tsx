@@ -54,7 +54,7 @@ export const EditableText = memo<EditableTextProps>(({
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
         onPointerDown={stopPropagation}
-        className={`${className} bg-transparent border-none outline-none w-full`}
+        className={`${className} bg-transparent border-none outline-none w-full text-postit`}
         autoFocus
       />
     );
@@ -62,7 +62,7 @@ export const EditableText = memo<EditableTextProps>(({
 
   return (
     <div
-      className={`${className} cursor-text`}
+      className={`${className} cursor-text text-postit`}
       onClick={handleClick}
       onPointerDown={stopPropagation}
     >

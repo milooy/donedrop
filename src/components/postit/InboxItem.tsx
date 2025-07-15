@@ -78,7 +78,7 @@ export const InboxItem = memo<InboxItemProps>(({
         <EditableText
           text={todo.text}
           onEdit={onEditText}
-          className="text-sm"
+          className="text-sm text-postit"
         />
 
         {/* 삭제 버튼 */}

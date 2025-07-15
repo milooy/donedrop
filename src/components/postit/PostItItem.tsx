@@ -78,7 +78,7 @@ export const PostItItem = memo<PostItItemProps>(({
         <EditableText
           text={todo.text}
           onEdit={onEditText}
-          className="text-sm"
+          className="text-sm text-postit"
         />
 
         {/* 삭제 버튼 */}
