@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { type Todo } from "@/hooks/useSupabaseData";
 import { DraggablePostIt } from "@/components/dnd/DraggablePostIt";
 import { EditableText } from "@/components/ui/EditableText";
@@ -9,6 +9,7 @@ import {
   SHADOW_STYLES 
 } from "@/lib/constants";
 import { getInboxPostItRotation } from "@/lib/utils/rotation";
+import { getDynamicTextStyle } from "@/lib/utils/text-sizing";
 
 interface InboxItemProps {
   todo: Todo;
@@ -24,6 +25,9 @@ export const InboxItem = memo<InboxItemProps>(({
   onEditText 
 }) => {
   const rotation = getInboxPostItRotation(todo.id);
+  
+  // 텍스트 길이에 따른 동적 스타일 계산
+  const textStyle = useMemo(() => getDynamicTextStyle(todo.text), [todo.text]);
 
   const stopPropagation = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
@@ -78,7 +82,11 @@ export const InboxItem = memo<InboxItemProps>(({
         <EditableText
           text={todo.text}
           onEdit={onEditText}
-          className="text-sm text-postit"
+          className="text-postit"
+          style={{
+            fontSize: textStyle.fontSize,
+            lineHeight: textStyle.lineHeight,
+          }}
         />
 
         {/* 삭제 버튼 */}

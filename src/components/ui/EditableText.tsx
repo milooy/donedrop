@@ -4,12 +4,14 @@ interface EditableTextProps {
   text: string;
   onEdit: (newText: string) => void;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 export const EditableText = memo<EditableTextProps>(({ 
   text, 
   onEdit, 
-  className = "" 
+  className = "",
+  style = {}
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(text);
@@ -55,6 +57,7 @@ export const EditableText = memo<EditableTextProps>(({
         onKeyDown={handleKeyDown}
         onPointerDown={stopPropagation}
         className={`${className} bg-transparent border-none outline-none w-full text-postit`}
+        style={style}
         autoFocus
       />
     );
@@ -63,6 +66,7 @@ export const EditableText = memo<EditableTextProps>(({
   return (
     <div
       className={`${className} cursor-text text-postit`}
+      style={style}
       onClick={handleClick}
       onPointerDown={stopPropagation}
     >

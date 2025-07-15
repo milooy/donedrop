@@ -1,4 +1,4 @@
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useMemo } from "react";
 import { type PostItColor } from "@/hooks/useSupabaseData";
 import { ColorPalette } from "@/components/ui/ColorPalette";
 import { 
@@ -9,6 +9,7 @@ import {
   APP_CONFIG 
 } from "@/lib/constants";
 import { getRandomRotation } from "@/lib/utils/rotation";
+import { getDynamicTextStyle } from "@/lib/utils/text-sizing";
 
 interface PostItInputProps {
   selectedColor: PostItColor;
@@ -25,6 +26,9 @@ export const PostItInput = memo<PostItInputProps>(({
   const [randomRotation] = useState(() => 
     getRandomRotation(APP_CONFIG.ROTATION_RANGE.INPUT)
   );
+  
+  // 텍스트 길이에 따른 동적 스타일 계산
+  const textStyle = useMemo(() => getDynamicTextStyle(text), [text]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +68,11 @@ export const PostItInput = memo<PostItInputProps>(({
           value={text}
           onChange={handleTextChange}
           placeholder="새 할일..."
-          className="flex-1 resize-none border-none outline-none bg-transparent text-sm mt-2 text-postit placeholder:text-postit placeholder:opacity-70"
+          className="flex-1 resize-none border-none outline-none bg-transparent mt-2 text-postit placeholder:text-postit placeholder:opacity-70"
+          style={{
+            fontSize: textStyle.fontSize,
+            lineHeight: textStyle.lineHeight,
+          }}
           maxLength={APP_CONFIG.MAX_TODO_LENGTH}
         />
       </form>
