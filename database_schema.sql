@@ -47,11 +47,35 @@ CREATE TABLE user_settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 5. rituals 테이블 (리추얼 항목들)
+CREATE TABLE rituals (
+  id BIGSERIAL PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  order_index INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. ritual_completions 테이블 (일별 리추얼 완료 기록)
+CREATE TABLE ritual_completions (
+  id BIGSERIAL PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  completed_ritual_ids BIGINT[] NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, date)
+);
+
 -- RLS 정책 설정
 ALTER TABLE todos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inbox_todos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE completed_todos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rituals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ritual_completions ENABLE ROW LEVEL SECURITY;
 
 -- 사용자는 자신의 데이터만 조회/수정 가능
 CREATE POLICY "Users can view own todos" ON todos FOR SELECT USING (auth.uid() = user_id);
@@ -73,6 +97,16 @@ CREATE POLICY "Users can view own settings" ON user_settings FOR SELECT USING (a
 CREATE POLICY "Users can insert own settings" ON user_settings FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own settings" ON user_settings FOR UPDATE USING (auth.uid() = user_id);
 
+CREATE POLICY "Users can view own rituals" ON rituals FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own rituals" ON rituals FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own rituals" ON rituals FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own rituals" ON rituals FOR DELETE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view own ritual_completions" ON ritual_completions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own ritual_completions" ON ritual_completions FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own ritual_completions" ON ritual_completions FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own ritual_completions" ON ritual_completions FOR DELETE USING (auth.uid() = user_id);
+
 -- 업데이트 시간 자동 갱신 함수
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -86,3 +120,5 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_todos_updated_at BEFORE UPDATE ON todos FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_inbox_todos_updated_at BEFORE UPDATE ON inbox_todos FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_settings_updated_at BEFORE UPDATE ON user_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_rituals_updated_at BEFORE UPDATE ON rituals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_ritual_completions_updated_at BEFORE UPDATE ON ritual_completions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

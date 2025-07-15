@@ -1,4 +1,4 @@
-import { Todo } from "@/hooks/useSupabaseData";
+import { Todo, Ritual, RitualCompletion } from "@/hooks/useSupabaseData";
 import { supabase } from "./supabase";
 
 export type TodoStatus = 'inbox' | 'active' | 'completed' | 'archived';
@@ -22,6 +22,25 @@ export interface UserSettings {
   selected_color: "yellow" | "pink" | "blue";
   inbox_selected_color: "yellow" | "pink" | "blue";
   coins: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RitualDatabase {
+  id: number;
+  user_id: string;
+  name: string;
+  order_index: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RitualCompletionDatabase {
+  id: number;
+  user_id: string;
+  date: string;
+  completed_ritual_ids: number[];
   created_at: string;
   updated_at: string;
 }
@@ -255,4 +274,142 @@ export const moveTodoToCompleted = async (
 
 export const moveTodoToMain = async (todoId: number, userId: string) => {
   return moveTodoToActive(todoId, userId);
+};
+
+// Ritual 변환 함수
+export const convertRitualFromDB = (dbRitual: RitualDatabase): Ritual => ({
+  id: dbRitual.id,
+  name: dbRitual.name,
+  orderIndex: dbRitual.order_index,
+  isActive: dbRitual.is_active,
+  createdAt: new Date(dbRitual.created_at).getTime(),
+});
+
+export const convertRitualToDB = (
+  ritual: Ritual,
+  userId: string
+): Partial<RitualDatabase> => ({
+  user_id: userId,
+  name: ritual.name,
+  order_index: ritual.orderIndex,
+  is_active: ritual.isActive,
+  created_at: new Date(ritual.createdAt).toISOString(),
+});
+
+// RitualCompletion 변환 함수
+export const convertRitualCompletionFromDB = (
+  dbCompletion: RitualCompletionDatabase
+): RitualCompletion => ({
+  id: dbCompletion.id,
+  date: dbCompletion.date,
+  completedRitualIds: dbCompletion.completed_ritual_ids,
+  createdAt: new Date(dbCompletion.created_at).getTime(),
+});
+
+export const convertRitualCompletionToDB = (
+  completion: RitualCompletion,
+  userId: string
+): Partial<RitualCompletionDatabase> => ({
+  user_id: userId,
+  date: completion.date,
+  completed_ritual_ids: completion.completedRitualIds,
+  created_at: new Date(completion.createdAt).toISOString(),
+});
+
+// Ritual CRUD
+export const fetchRituals = async (userId: string) => {
+  const { data, error } = await supabase
+    .from("rituals")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .order("order_index", { ascending: true });
+
+  if (error) throw error;
+  return data?.map(convertRitualFromDB) || [];
+};
+
+export const insertRitual = async (ritual: Ritual, userId: string) => {
+  const { data, error } = await supabase
+    .from("rituals")
+    .insert(convertRitualToDB(ritual, userId))
+    .select()
+    .single();
+
+  if (error) throw error;
+  return convertRitualFromDB(data);
+};
+
+export const updateRitual = async (
+  id: number,
+  updates: Partial<Ritual>,
+  userId: string
+) => {
+  const updateData: Record<string, unknown> = {};
+
+  if (updates.name !== undefined) {
+    updateData.name = updates.name;
+  }
+
+  if (updates.orderIndex !== undefined) {
+    updateData.order_index = updates.orderIndex;
+  }
+
+  if (updates.isActive !== undefined) {
+    updateData.is_active = updates.isActive;
+  }
+
+  updateData.updated_at = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("rituals")
+    .update(updateData)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return convertRitualFromDB(data);
+};
+
+export const deleteRitual = async (id: number, userId: string) => {
+  const { error } = await supabase
+    .from("rituals")
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+};
+
+// RitualCompletion CRUD
+export const fetchRitualCompletions = async (userId: string) => {
+  const { data, error } = await supabase
+    .from("ritual_completions")
+    .select("*")
+    .eq("user_id", userId)
+    .order("date", { ascending: false });
+
+  if (error) throw error;
+  return data?.map(convertRitualCompletionFromDB) || [];
+};
+
+export const upsertRitualCompletion = async (
+  completion: RitualCompletion,
+  userId: string
+) => {
+  const { data, error } = await supabase
+    .from("ritual_completions")
+    .upsert({
+      user_id: userId,
+      date: completion.date,
+      completed_ritual_ids: completion.completedRitualIds,
+      updated_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return convertRitualCompletionFromDB(data);
 };

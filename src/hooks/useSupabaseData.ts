@@ -2,20 +2,32 @@ import {
   archiveCompletedTodos,
   deleteInboxTodo,
   deleteTodo,
+  deleteRitual,
   fetchActiveTodos,
   fetchCompletedTodos,
   fetchInboxTodos,
+  fetchRituals,
+  fetchRitualCompletions,
   fetchUserSettings,
   insertInboxTodo,
+  insertRitual,
   insertTodo,
   moveTodoToCompleted,
   moveTodoToInbox,
   moveTodoToMain,
   updateInboxTodo,
+  updateRitual,
   updateTodo,
+  upsertRitualCompletion,
   upsertUserSettings,
 } from "@/lib/database";
 import { supabase } from "@/lib/supabase";
+import { 
+  calculateBestStreak, 
+  calculateCurrentStreak, 
+  getTodayCompletedRitualIds, 
+  getTodayString
+} from "@/lib/utils/streak";
 import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 
@@ -34,6 +46,21 @@ export interface Todo {
   archivedAt?: number;
 }
 
+export interface Ritual {
+  id: number;
+  name: string;
+  orderIndex: number;
+  isActive: boolean;
+  createdAt: number;
+}
+
+export interface RitualCompletion {
+  id: number;
+  date: string; // YYYY-MM-DD format
+  completedRitualIds: number[];
+  createdAt: number;
+}
+
 export const useSupabaseData = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +73,10 @@ export const useSupabaseData = () => {
   const [inboxSelectedColor, setInboxSelectedColor] =
     useState<PostItColor>("yellow");
   const [coins, setCoins] = useState(0);
+
+  // Ritual states
+  const [rituals, setRituals] = useState<Ritual[]>([]);
+  const [ritualCompletions, setRitualCompletions] = useState<RitualCompletion[]>([]);
 
   // Initialize auth
   useEffect(() => {
@@ -71,6 +102,8 @@ export const useSupabaseData = () => {
         setSelectedColor("yellow");
         setInboxSelectedColor("yellow");
         setCoins(0);
+        setRituals([]);
+        setRitualCompletions([]);
       }
     });
 
@@ -82,7 +115,7 @@ export const useSupabaseData = () => {
     if (user) {
       loadAllData();
     }
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadAllData = async () => {
     if (!user) return;
@@ -91,17 +124,21 @@ export const useSupabaseData = () => {
       setLoading(true);
 
       // Load all data in parallel
-      const [todosData, inboxData, completedData, settingsData] =
+      const [todosData, inboxData, completedData, settingsData, ritualsData, ritualCompletionsData] =
         await Promise.all([
           fetchActiveTodos(user.id),
           fetchInboxTodos(user.id),
           fetchCompletedTodos(user.id),
           fetchUserSettings(user.id),
+          fetchRituals(user.id),
+          fetchRitualCompletions(user.id),
         ]);
 
       setTodos(todosData);
       setInboxTodos(inboxData);
       setCompletedTodos(completedData);
+      setRituals(ritualsData);
+      setRitualCompletions(ritualCompletionsData);
 
       if (settingsData) {
         setSelectedColor(settingsData.selected_color);
@@ -378,6 +415,101 @@ export const useSupabaseData = () => {
     }
   };
 
+  // Ritual actions
+  const addRitual = async (name: string) => {
+    if (!user) return;
+
+    const newRitual = {
+      id: Date.now(), // Temporary ID
+      name,
+      orderIndex: rituals.length,
+      isActive: true,
+      createdAt: Date.now(),
+    };
+
+    try {
+      const savedRitual = await insertRitual(newRitual, user.id);
+      setRituals((prev) => [...prev, savedRitual]);
+    } catch (error) {
+      console.error("Error adding ritual:", error);
+    }
+  };
+
+  const editRitual = async (ritualId: number, newName: string) => {
+    if (!user) return;
+
+    try {
+      await updateRitual(ritualId, { name: newName }, user.id);
+      setRituals((prev) =>
+        prev.map((ritual) =>
+          ritual.id === ritualId ? { ...ritual, name: newName } : ritual
+        )
+      );
+    } catch (error) {
+      console.error("Error updating ritual:", error);
+    }
+  };
+
+  const removeRitual = async (ritualId: number) => {
+    if (!user) return;
+
+    try {
+      await deleteRitual(ritualId, user.id);
+      setRituals((prev) => prev.filter((ritual) => ritual.id !== ritualId));
+    } catch (error) {
+      console.error("Error deleting ritual:", error);
+    }
+  };
+
+  const toggleRitual = async (ritualId: number) => {
+    if (!user) return;
+
+    const today = getTodayString();
+    const todayCompletedIds = getTodayCompletedRitualIds(ritualCompletions);
+    
+    let newCompletedIds: number[];
+    if (todayCompletedIds.includes(ritualId)) {
+      // 체크 해제
+      newCompletedIds = todayCompletedIds.filter(id => id !== ritualId);
+    } else {
+      // 체크
+      newCompletedIds = [...todayCompletedIds, ritualId];
+    }
+
+    const completion: RitualCompletion = {
+      id: Date.now(),
+      date: today,
+      completedRitualIds: newCompletedIds,
+      createdAt: Date.now(),
+    };
+
+    try {
+      const savedCompletion = await upsertRitualCompletion(completion, user.id);
+      setRitualCompletions((prev) => {
+        const filtered = prev.filter(c => c.date !== today);
+        return [savedCompletion, ...filtered];
+      });
+
+      // 모든 리추얼이 완료되었는지 확인하고 보상
+      const activeRituals = rituals.filter(r => r.isActive);
+      if (activeRituals.length > 0 && 
+          newCompletedIds.length === activeRituals.length &&
+          activeRituals.every(r => newCompletedIds.includes(r.id))) {
+        // 5개 보석 보상
+        const newCoins = coins + 5;
+        await upsertUserSettings(user.id, { coins: newCoins });
+        setCoins(newCoins);
+      }
+    } catch (error) {
+      console.error("Error toggling ritual:", error);
+    }
+  };
+
+  // Ritual computed values
+  const todayCompletedRitualIds = getTodayCompletedRitualIds(ritualCompletions);
+  const currentStreak = calculateCurrentStreak(ritualCompletions, rituals.filter(r => r.isActive));
+  const bestStreak = calculateBestStreak(ritualCompletions, rituals.filter(r => r.isActive));
+
   return {
     // Auth
     user,
@@ -394,6 +526,13 @@ export const useSupabaseData = () => {
     inboxSelectedColor,
     coins,
 
+    // Ritual Data
+    rituals,
+    ritualCompletions,
+    todayCompletedRitualIds,
+    currentStreak,
+    bestStreak,
+
     // Actions
     addTodo,
     addInboxTodo,
@@ -409,5 +548,11 @@ export const useSupabaseData = () => {
     rewardCoins,
     updateSelectedColor,
     updateInboxSelectedColor,
+
+    // Ritual Actions
+    addRitual,
+    editRitual,
+    removeRitual,
+    toggleRitual,
   };
 };

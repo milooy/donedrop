@@ -23,12 +23,13 @@ import { DroppableArea } from "@/components/dnd/DroppableArea";
 import { DragOverlayContent } from "@/components/dnd/DragOverlayContent";
 import { CompletedTodosModal } from "@/components/modals/CompletedTodosModal";
 import { CoinRewardModal } from "@/components/modals/CoinRewardModal";
+import { RitualWidget } from "@/components/ritual/RitualWidget";
 
 // Styles
-import { 
-  WOOD_BACKGROUND, 
-  MEMO_BOARD_BACKGROUND, 
-  INBOX_BACKGROUND 
+import {
+  WOOD_BACKGROUND,
+  MEMO_BOARD_BACKGROUND,
+  INBOX_BACKGROUND,
 } from "@/lib/styles/backgrounds";
 
 export default function BoardPage() {
@@ -58,6 +59,18 @@ export default function BoardPage() {
     rewardCoins,
     updateSelectedColor,
     updateInboxSelectedColor,
+
+    // Ritual data
+    rituals,
+    todayCompletedRitualIds,
+    currentStreak,
+    bestStreak,
+
+    // Ritual actions
+    addRitual,
+    editRitual,
+    removeRitual,
+    toggleRitual,
   } = supabaseData;
 
   // Custom hooks
@@ -65,21 +78,18 @@ export default function BoardPage() {
   const { isAuthenticated, isLoading } = useAuthGuard(user, loading);
   const sortedTodos = useTodoSorting(todos);
   const sortedInboxTodos = useTodoSorting(inboxTodos);
-  
+
   const { activeTodo, handleDragStart, handleDragEnd } = useDragAndDrop({
     completeTodo,
     moveToMain,
     moveToInbox,
   });
 
-  const { 
-    showCoinRewardModal, 
-    handleRewardAccept, 
-    handleRewardClose 
-  } = useCoinReward({
-    completedCount: completedTodos.length,
-    rewardCoins,
-  });
+  const { showCoinRewardModal, handleRewardAccept, handleRewardClose } =
+    useCoinReward({
+      completedCount: completedTodos.length,
+      rewardCoins,
+    });
 
   // Local state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -113,6 +123,7 @@ export default function BoardPage() {
       inset 0 4px 8px rgba(120, 53, 15, 0.3),
       0 -4px 16px rgba(0, 0, 0, 0.2)
     `,
+    paddingRight: 320,
   };
 
   return (
@@ -127,18 +138,26 @@ export default function BoardPage() {
         <div className="min-h-screen flex flex-col" style={containerStyle}>
           {/* 명함 */}
           <div className="relative z-20">
-            <FrameBusinessCard 
-              user={user} 
-              coins={coins} 
-              onSignOut={signOut} 
-            />
+            <FrameBusinessCard user={user} coins={coins} onSignOut={signOut} />
           </div>
+
+          {/* 리추얼 위젯 */}
+          <RitualWidget
+            rituals={rituals}
+            completedRitualIds={todayCompletedRitualIds}
+            currentStreak={currentStreak}
+            bestStreak={bestStreak}
+            onToggleRitual={toggleRitual}
+            onAddRitual={addRitual}
+            onEditRitual={editRitual}
+            onDeleteRitual={removeRitual}
+          />
 
           <div className="flex flex-1">
             {/* 메인 보드 */}
             <div className="flex-1 p-8" style={memoBoardStyle}>
               <DroppableArea id="main-board" className="h-full">
-                <div className="p-6 relative">
+                <div className="p-6 relative" style={{ paddingRight: "280px" }}>
                   <div className="flex flex-wrap gap-6 relative z-10">
                     <PostItInput
                       selectedColor={selectedColor}
@@ -174,7 +193,7 @@ export default function BoardPage() {
           {/* 인박스 */}
           <div className="h-48 p-6" style={inboxStyle}>
             <DroppableArea id="inbox" className="h-full">
-              <div 
+              <div
                 className="flex gap-4 overflow-x-auto pb-4"
                 style={{ overflowClipMargin: "unset" }}
               >
@@ -189,7 +208,9 @@ export default function BoardPage() {
                     todo={todo}
                     onDelete={() => removeInboxTodo(todo.id)}
                     onTogglePin={() => toggleInboxPin(todo.id)}
-                    onEditText={(newText) => editInboxTodoText(todo.id, newText)}
+                    onEditText={(newText) =>
+                      editInboxTodoText(todo.id, newText)
+                    }
                   />
                 ))}
               </div>
