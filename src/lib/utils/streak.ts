@@ -1,11 +1,14 @@
 import { type RitualCompletion, type Ritual } from "@/hooks/useSupabaseData";
 
 /**
- * 오늘 날짜를 YYYY-MM-DD 형식으로 반환
+ * 오늘 날짜를 YYYY-MM-DD 형식으로 반환 (로컬 시간대 기준)
  */
 export const getTodayString = (): string => {
   const today = new Date();
-  return today.toISOString().split('T')[0];
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 /**

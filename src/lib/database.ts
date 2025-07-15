@@ -1,4 +1,4 @@
-import { Todo, Ritual, RitualCompletion } from "@/hooks/useSupabaseData";
+import { Todo, Ritual, RitualCompleteLog, RitualGem } from "@/hooks/useSupabaseData";
 import { supabase } from "./supabase";
 
 export type TodoStatus = "inbox" | "active" | "completed" | "archived";
@@ -47,11 +47,21 @@ export interface RitualCompletionDatabase {
   archived_at?: string;
 }
 
-export interface GemDatabase {
+export interface RitualCompleteLogDatabase {
   id: number;
   user_id: string;
+  ritual_id: number;
+  completed_at: string;
   created_at: string;
-  is_from_ritual: boolean;
+}
+
+export interface RitualGemDatabase {
+  id: number;
+  user_id: string;
+  date: string;
+  created_at: string;
+  is_archived: boolean;
+  archived_at?: string;
 }
 
 // Todo 변환 함수
@@ -307,28 +317,48 @@ export const convertRitualToDB = (
   created_at: new Date(ritual.createdAt).toISOString(),
 });
 
-// RitualCompletion 변환 함수
-export const convertRitualCompletionFromDB = (
-  dbCompletion: RitualCompletionDatabase
-): RitualCompletion => ({
-  id: dbCompletion.id,
-  date: dbCompletion.date,
-  completedRitualIds: dbCompletion.completed_ritual_ids,
-  createdAt: new Date(dbCompletion.created_at).getTime(),
-  isArchived: dbCompletion.is_archived,
-  archivedAt: dbCompletion.archived_at ? new Date(dbCompletion.archived_at).getTime() : undefined,
+// RitualCompleteLog 변환 함수
+export const convertRitualCompleteLogFromDB = (
+  dbLog: RitualCompleteLogDatabase
+): RitualCompleteLog => ({
+  id: dbLog.id,
+  userId: dbLog.user_id,
+  ritualId: dbLog.ritual_id,
+  completedAt: new Date(dbLog.completed_at).getTime(),
+  createdAt: new Date(dbLog.created_at).getTime(),
 });
 
-export const convertRitualCompletionToDB = (
-  completion: RitualCompletion,
+export const convertRitualCompleteLogToDB = (
+  log: RitualCompleteLog,
   userId: string
-): Partial<RitualCompletionDatabase> => ({
+): Partial<RitualCompleteLogDatabase> => ({
   user_id: userId,
-  date: completion.date,
-  completed_ritual_ids: completion.completedRitualIds,
-  created_at: new Date(completion.createdAt).toISOString(),
-  is_archived: completion.isArchived,
-  archived_at: completion.archivedAt ? new Date(completion.archivedAt).toISOString() : undefined,
+  ritual_id: log.ritualId,
+  completed_at: new Date(log.completedAt).toISOString(),
+  created_at: new Date(log.createdAt).toISOString(),
+});
+
+// RitualGem 변환 함수
+export const convertRitualGemFromDB = (
+  dbGem: RitualGemDatabase
+): RitualGem => ({
+  id: dbGem.id,
+  userId: dbGem.user_id,
+  date: dbGem.date,
+  createdAt: new Date(dbGem.created_at).getTime(),
+  isArchived: dbGem.is_archived,
+  archivedAt: dbGem.archived_at ? new Date(dbGem.archived_at).getTime() : undefined,
+});
+
+export const convertRitualGemToDB = (
+  gem: RitualGem,
+  userId: string
+): Partial<RitualGemDatabase> => ({
+  user_id: userId,
+  date: gem.date,
+  created_at: new Date(gem.createdAt).toISOString(),
+  is_archived: gem.isArchived,
+  archived_at: gem.archivedAt ? new Date(gem.archivedAt).toISOString() : undefined,
 });
 
 // Ritual CRUD
@@ -398,51 +428,116 @@ export const deleteRitual = async (id: number, userId: string) => {
   if (error) throw error;
 };
 
-// RitualCompletion CRUD
-export const fetchRitualCompletions = async (userId: string) => {
+// RitualCompleteLog CRUD
+export const fetchRitualCompleteLogs = async (userId: string) => {
   const { data, error } = await supabase
-    .from("ritual_completions")
+    .from("ritual_complete_logs")
     .select("*")
     .eq("user_id", userId)
-    .order("date", { ascending: false });
+    .order("completed_at", { ascending: false });
 
   if (error) throw error;
-  return data?.map(convertRitualCompletionFromDB) || [];
+  return data?.map(convertRitualCompleteLogFromDB) || [];
 };
 
-export const upsertRitualCompletion = async (
-  completion: RitualCompletion,
-  userId: string
-) => {
+// 날짜 범위 헬퍼 함수
+const getTodayRange = () => {
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+  return { startOfDay, endOfDay };
+};
+
+export const insertRitualCompleteLog = async (ritualId: number, userId: string) => {
+  // 오늘 이미 같은 리추얼의 로그가 있는지 확인
+  const { startOfDay, endOfDay } = getTodayRange();
+  
+  const { data: existingLogs } = await supabase
+    .from("ritual_complete_logs")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("ritual_id", ritualId)
+    .gte("completed_at", startOfDay.toISOString())
+    .lte("completed_at", endOfDay.toISOString());
+
+  // 이미 오늘 완료 기록이 있으면 기존 로그 반환
+  if (existingLogs && existingLogs.length > 0) {
+    // 기존 로그의 전체 정보를 다시 가져오기
+    const { data: fullLog, error: fetchError } = await supabase
+      .from("ritual_complete_logs")
+      .select("*")
+      .eq("id", existingLogs[0].id)
+      .single();
+    
+    if (fetchError) throw fetchError;
+    return convertRitualCompleteLogFromDB(fullLog);
+  }
+
   const { data, error } = await supabase
-    .from("ritual_completions")
-    .upsert(
-      {
-        user_id: userId,
-        date: completion.date,
-        completed_ritual_ids: completion.completedRitualIds,
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: "user_id,date",
-        ignoreDuplicates: false,
-      }
-    )
+    .from("ritual_complete_logs")
+    .insert({
+      user_id: userId,
+      ritual_id: ritualId,
+      completed_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+    })
     .select()
     .single();
 
   if (error) throw error;
-  return convertRitualCompletionFromDB(data);
+  return convertRitualCompleteLogFromDB(data);
 };
 
-// RitualCompletion 아카이브 (유리병 비우기 시 사용)
-export const archiveRitualCompletions = async (userId: string) => {
+export const deleteRitualCompleteLog = async (ritualId: number, userId: string) => {
+  // 오늘 날짜의 해당 리추얼 로그를 모두 삭제
+  const { startOfDay, endOfDay } = getTodayRange();
+  
   const { error } = await supabase
-    .from("ritual_completions")
+    .from("ritual_complete_logs")
+    .delete()
+    .eq("user_id", userId)
+    .eq("ritual_id", ritualId)
+    .gte("completed_at", startOfDay.toISOString())
+    .lte("completed_at", endOfDay.toISOString());
+
+  if (error) throw error;
+};
+
+// RitualGem CRUD
+export const fetchRitualGems = async (userId: string) => {
+  const { data, error } = await supabase
+    .from("ritual_gems")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("is_archived", false)
+    .order("date", { ascending: true });
+
+  if (error) throw error;
+  return data?.map(convertRitualGemFromDB) || [];
+};
+
+export const insertRitualGem = async (date: string, userId: string) => {
+  const { data, error } = await supabase
+    .from("ritual_gems")
+    .insert({
+      user_id: userId,
+      date: date,
+      created_at: new Date().toISOString(),
+      is_archived: false,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return convertRitualGemFromDB(data);
+};
+
+export const archiveRitualGems = async (userId: string) => {
+  const { error } = await supabase
+    .from("ritual_gems")
     .update({
       is_archived: true,
       archived_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId)
     .eq("is_archived", false);
@@ -450,43 +545,3 @@ export const archiveRitualCompletions = async (userId: string) => {
   if (error) throw error;
 };
 
-// Gem functions
-export const insertGem = async (userId: string, isFromRitual = true) => {
-  const { data, error } = await supabase
-    .from("gems")
-    .insert({
-      user_id: userId,
-      is_from_ritual: isFromRitual,
-      created_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return convertGemFromDB(data);
-};
-
-export const fetchGems = async (userId: string) => {
-  const { data, error } = await supabase
-    .from("gems")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true });
-
-  if (error) throw error;
-  return data?.map(convertGemFromDB) || [];
-};
-
-export const deleteAllGems = async (userId: string) => {
-  const { error } = await supabase.from("gems").delete().eq("user_id", userId);
-
-  if (error) throw error;
-};
-
-// Gem conversion function
-const convertGemFromDB = (dbGem: GemDatabase) => ({
-  id: dbGem.id,
-  userId: dbGem.user_id,
-  createdAt: new Date(dbGem.created_at).getTime(),
-  isFromRitual: dbGem.is_from_ritual,
-});

@@ -7,10 +7,13 @@ import {
   fetchCompletedTodos,
   fetchInboxTodos,
   fetchRituals,
-  fetchRitualCompletions,
+  fetchRitualCompleteLogs,
+  fetchRitualGems,
   fetchUserSettings,
   insertInboxTodo,
   insertRitual,
+  insertRitualCompleteLog,
+  insertRitualGem,
   insertTodo,
   moveTodoToCompleted,
   moveTodoToInbox,
@@ -18,15 +21,12 @@ import {
   updateInboxTodo,
   updateRitual,
   updateTodo,
-  upsertRitualCompletion,
+  deleteRitualCompleteLog,
+  archiveRitualGems,
   upsertUserSettings,
-  archiveRitualCompletions,
 } from "@/lib/database";
 import { supabase } from "@/lib/supabase";
 import {
-  calculateBestStreak,
-  calculateCurrentStreak,
-  getTodayCompletedRitualIds,
   getTodayString,
 } from "@/lib/utils/streak";
 import { User } from "@supabase/supabase-js";
@@ -55,22 +55,25 @@ export interface Ritual {
   createdAt: number;
 }
 
-export interface RitualCompletion {
-  id: number;
-  date: string; // YYYY-MM-DD format
-  completedRitualIds: number[];
-  createdAt: number;
-  isArchived?: boolean; // 유리병 비우기 시 true로 설정
-  archivedAt?: number;  // 아카이브된 시간
-}
-
-export interface Gem {
+export interface RitualCompleteLog {
   id: number;
   userId: string;
-  createdAt: number; // 보석을 얻은 시간
-  isFromRitual: boolean; // 리추얼 완료로 얻은 보석인지
-  date?: string; // 리추얼 완료 날짜 (YYYY-MM-DD)
+  ritualId: number;
+  completedAt: number;
+  createdAt: number;
 }
+
+export interface RitualGem {
+  id: number;
+  userId: string;
+  date: string; // YYYY-MM-DD format
+  createdAt: number;
+  isArchived: boolean;
+  archivedAt?: number;
+}
+
+// Gem interface는 RitualGem으로 대체
+export type Gem = RitualGem;
 
 export const useSupabaseData = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -87,56 +90,51 @@ export const useSupabaseData = () => {
 
   // Ritual states
   const [rituals, setRituals] = useState<Ritual[]>([]);
-  const [ritualCompletions, setRitualCompletions] = useState<
-    RitualCompletion[]
-  >([]);
+  const [ritualCompleteLogs, setRitualCompleteLogs] = useState<RitualCompleteLog[]>([]);
+  const [ritualGems, setRitualGems] = useState<RitualGem[]>([]);
   const [showRitualCompletionModal, setShowRitualCompletionModal] =
     useState(false);
   const [completedRitualsForModal, setCompletedRitualsForModal] = useState<
     Ritual[]
   >([]);
-  const [rewardClaimedToday, setRewardClaimedToday] = useState<string | null>(null);
 
   // Gem states
   const [gems, setGems] = useState<Gem[]>([]);
 
-  // ritual_completions에서 보석 계산하는 함수
-  const calculateGemsFromRitualCompletions = (
-    ritualCompletions: RitualCompletion[],
-    activeRituals: Ritual[]
-  ): Gem[] => {
-    const gems: Gem[] = [];
-    const activeRitualIds = activeRituals.map(r => r.id);
-    
-    // 아카이브되지 않은 ritual_completions만 처리
-    const nonArchivedCompletions = ritualCompletions.filter(completion => !completion.isArchived);
-    
-    nonArchivedCompletions.forEach(completion => {
-      // 모든 활성 리추얼을 완료한 경우에만 보석 생성
-      const hasCompletedAllRituals = activeRitualIds.length > 0 && 
-        activeRitualIds.every(id => completion.completedRitualIds.includes(id));
-      
-      if (hasCompletedAllRituals) {
-        gems.push({
-          id: completion.id,
-          userId: user?.id || '',
-          createdAt: completion.createdAt,
-          isFromRitual: true,
-          date: completion.date,
-        });
-      }
-    });
-    
-    return gems;
+
+  // 날짜를 YYYY-MM-DD 형식으로 변환하는 공통 함수
+  const formatDateString = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
-  // ritual_completions과 rituals가 변경될 때마다 보석 계산
+  // 오늘 완료된 리추얼 ID 목록 계산
+  const getTodayCompletedRitualIds = (logs: RitualCompleteLog[], today: string): number[] => {
+    const todayLogs = logs.filter(log => formatDateString(log.completedAt) === today);
+    // 중복 제거: 같은 ritualId가 여러 번 있을 수 있으므로 고유한 값만 반환
+    return [...new Set(todayLogs.map(log => log.ritualId))];
+  };
+
+  // 오늘 모든 리추얼을 완료했는지 확인하는 함수
+  const hasCompletedAllRitualsToday = (
+    logs: RitualCompleteLog[],
+    activeRituals: Ritual[],
+    today: string
+  ): boolean => {
+    if (activeRituals.length === 0) return false;
+    
+    const todayCompletedIds = getTodayCompletedRitualIds(logs, today);
+    const activeRitualIds = activeRituals.map(r => r.id);
+    return activeRitualIds.every(id => todayCompletedIds.includes(id));
+  };
+
+  // ritual_gems가 변경될 때마다 보석 상태 업데이트
   useEffect(() => {
-    if (user && ritualCompletions.length >= 0 && rituals.length >= 0) {
-      const calculatedGems = calculateGemsFromRitualCompletions(ritualCompletions, rituals);
-      setGems(calculatedGems);
-    }
-  }, [user, ritualCompletions, rituals]); // eslint-disable-line react-hooks/exhaustive-deps
+    setGems(ritualGems);
+  }, [ritualGems]);
 
   // Initialize auth
   useEffect(() => {
@@ -163,8 +161,8 @@ export const useSupabaseData = () => {
         setInboxSelectedColor("yellow");
         setCoins(0);
         setRituals([]);
-        setRitualCompletions([]);
-        setRewardClaimedToday(null);
+        setRitualCompleteLogs([]);
+        setRitualGems([]);
       }
     });
 
@@ -191,34 +189,24 @@ export const useSupabaseData = () => {
         completedData,
         settingsData,
         ritualsData,
-        ritualCompletionsData,
+        ritualCompleteLogsData,
+        ritualGemsData,
       ] = await Promise.all([
         fetchActiveTodos(user.id),
         fetchInboxTodos(user.id),
         fetchCompletedTodos(user.id),
         fetchUserSettings(user.id),
         fetchRituals(user.id),
-        fetchRitualCompletions(user.id),
+        fetchRitualCompleteLogs(user.id),
+        fetchRitualGems(user.id),
       ]);
 
       setTodos(todosData);
       setInboxTodos(inboxData);
       setCompletedTodos(completedData);
       setRituals(ritualsData);
-      setRitualCompletions(ritualCompletionsData);
-      
-      // 오늘 이미 모든 리추얼을 완료했는지 확인
-      const today = getTodayString();
-      const activeRitualIds = ritualsData.filter(r => r.isActive).map(r => r.id);
-      const hasCompletedAllToday = ritualCompletionsData.some(completion => 
-        completion.date === today && 
-        activeRitualIds.length > 0 &&
-        activeRitualIds.every(id => completion.completedRitualIds.includes(id))
-      );
-      
-      if (hasCompletedAllToday) {
-        setRewardClaimedToday(today);
-      }
+      setRitualCompleteLogs(ritualCompleteLogsData);
+      setRitualGems(ritualGemsData);
 
       if (settingsData) {
         setSelectedColor(settingsData.selected_color);
@@ -426,11 +414,14 @@ export const useSupabaseData = () => {
 
       await upsertUserSettings(user.id, { coins: newCoins });
       await archiveCompletedTodos(user.id);
-      await archiveRitualCompletions(user.id); // ritual_completions 아카이브
+      await archiveRitualGems(user.id); // ritual_gems 아카이브
 
       setCoins(newCoins);
       setCompletedTodos([]);
-      // gems는 ritual_completions 변경으로 자동 재계산됨
+      // gems는 ritual_gems 변경으로 자동 재계산됨
+      // 아카이브된 보석들을 제거하기 위해 다시 로드
+      const updatedGems = await fetchRitualGems(user.id);
+      setRitualGems(updatedGems);
     } catch (error) {
       console.error("Error rewarding coins:", error);
     }
@@ -560,44 +551,43 @@ export const useSupabaseData = () => {
     if (!user) return;
 
     const today = getTodayString();
-    const todayCompletedIds = getTodayCompletedRitualIds(ritualCompletions);
-
-    let newCompletedIds: number[];
-    if (todayCompletedIds.includes(ritualId)) {
-      // 체크 해제
-      newCompletedIds = todayCompletedIds.filter((id) => id !== ritualId);
-    } else {
-      // 체크
-      newCompletedIds = [...todayCompletedIds, ritualId];
-    }
-
-    const completion: RitualCompletion = {
-      id: Date.now(),
-      date: today,
-      completedRitualIds: newCompletedIds,
-      createdAt: Date.now(),
-    };
+    const todayCompletedIds = getTodayCompletedRitualIds(ritualCompleteLogs, today);
 
     try {
-      const savedCompletion = await upsertRitualCompletion(completion, user.id);
-      setRitualCompletions((prev) => {
-        const filtered = prev.filter((c) => c.date !== today);
-        return [savedCompletion, ...filtered];
-      });
+      if (todayCompletedIds.includes(ritualId)) {
+        // 체크 해제 - 로그 삭제
+        await deleteRitualCompleteLog(ritualId, user.id);
+        
+        // 상태에서 해당 로그들을 제거
+        setRitualCompleteLogs(prev => 
+          prev.filter(log => !(log.ritualId === ritualId && formatDateString(log.completedAt) === today))
+        );
+      } else {
+        // 체크 - 로그 추가
+        const newLog = await insertRitualCompleteLog(ritualId, user.id);
+        setRitualCompleteLogs(prev => [newLog, ...prev]);
 
-      // 모든 리추얼이 완료되었는지 확인하고 모달 표시
-      const activeRituals = rituals.filter((r) => r.isActive);
-      const activeRitualIds = activeRituals.map(r => r.id);
-      
-      // 새로운 상태: 토글 후 모든 리추얼이 완료되었는지
-      const isNowAllCompleted = activeRitualIds.length > 0 &&
-        activeRitualIds.every((id) => newCompletedIds.includes(id));
-      
-      if (isNowAllCompleted) {
-        // 오늘 이미 보상을 받았는지 확인
-        if (rewardClaimedToday !== today) {
-          setCompletedRitualsForModal(activeRituals);
-          setShowRitualCompletionModal(true);
+        // 모든 리추얼이 완료되었는지 확인
+        const activeRituals = rituals.filter(r => r.isActive);
+        const updatedCompletedIds = [...todayCompletedIds, ritualId];
+        const activeRitualIds = activeRituals.map(r => r.id);
+
+        const isNowAllCompleted = activeRitualIds.length > 0 && 
+          activeRitualIds.every(id => updatedCompletedIds.includes(id));
+
+        if (isNowAllCompleted) {
+          // 오늘 이미 모든 리추얼을 완료한 기록이 있는지 확인 (방금 추가한 것 제외)
+          const hadCompletedAllToday = hasCompletedAllRitualsToday(ritualCompleteLogs, activeRituals, today);
+
+          // 오늘 처음 모든 리추얼을 완료했을 때만 모달 표시하고 보석 생성
+          if (!hadCompletedAllToday) {
+            setCompletedRitualsForModal(activeRituals);
+            setShowRitualCompletionModal(true);
+            
+            // 보석 생성
+            const newGem = await insertRitualGem(today, user.id);
+            setRitualGems(prev => [...prev, newGem]);
+          }
         }
       }
     } catch (error) {
@@ -609,10 +599,6 @@ export const useSupabaseData = () => {
     if (!user) return;
 
     try {
-      // 오늘 보상을 받았다고 표시
-      const today = getTodayString();
-      setRewardClaimedToday(today);
-      
       // 모달 닫기 - 보석은 이미 ritual_completions에서 계산됨
       setShowRitualCompletionModal(false);
       setCompletedRitualsForModal([]);
@@ -622,15 +608,13 @@ export const useSupabaseData = () => {
   };
 
   // Ritual computed values
-  const todayCompletedRitualIds = getTodayCompletedRitualIds(ritualCompletions);
-  const currentStreak = calculateCurrentStreak(
-    ritualCompletions,
-    rituals.filter((r) => r.isActive)
-  );
-  const bestStreak = calculateBestStreak(
-    ritualCompletions,
-    rituals.filter((r) => r.isActive)
-  );
+  const today = getTodayString();
+  const todayCompletedRitualIds = getTodayCompletedRitualIds(ritualCompleteLogs, today);
+  
+  // TODO: streak 계산 함수들을 새로운 구조에 맞게 수정해야 함
+  const currentStreak = 0; // 임시값
+  const bestStreak = 0; // 임시값
+
 
   return {
     // Auth
@@ -650,7 +634,8 @@ export const useSupabaseData = () => {
 
     // Ritual Data
     rituals,
-    ritualCompletions,
+    ritualCompleteLogs,
+    ritualGems,
     todayCompletedRitualIds,
     currentStreak,
     bestStreak,
