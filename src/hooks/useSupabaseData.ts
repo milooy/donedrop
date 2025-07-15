@@ -1,10 +1,10 @@
 import {
-  clearCompletedTodos,
+  archiveCompletedTodos,
   deleteInboxTodo,
   deleteTodo,
+  fetchActiveTodos,
   fetchCompletedTodos,
   fetchInboxTodos,
-  fetchTodos,
   fetchUserSettings,
   insertInboxTodo,
   insertTodo,
@@ -20,15 +20,18 @@ import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 
 export type PostItColor = "yellow" | "pink" | "blue";
+export type TodoStatus = 'inbox' | 'active' | 'completed' | 'archived';
 
 export interface Todo {
   id: number;
   text: string;
   color: PostItColor;
+  status: TodoStatus;
   isPinned: boolean;
   pinnedAt?: number;
   createdAt: number;
   completedAt?: number;
+  archivedAt?: number;
 }
 
 export const useSupabaseData = () => {
@@ -90,7 +93,7 @@ export const useSupabaseData = () => {
       // Load all data in parallel
       const [todosData, inboxData, completedData, settingsData] =
         await Promise.all([
-          fetchTodos(user.id),
+          fetchActiveTodos(user.id),
           fetchInboxTodos(user.id),
           fetchCompletedTodos(user.id),
           fetchUserSettings(user.id),
@@ -120,6 +123,7 @@ export const useSupabaseData = () => {
       id: Date.now(), // Temporary ID
       text,
       color,
+      status: 'active' as TodoStatus,
       isPinned: false,
       createdAt: Date.now(),
     };
@@ -139,6 +143,7 @@ export const useSupabaseData = () => {
       id: Date.now(),
       text,
       color,
+      status: 'inbox' as TodoStatus,
       isPinned: false,
       createdAt: Date.now(),
     };
@@ -249,13 +254,9 @@ export const useSupabaseData = () => {
     if (!user) return;
 
     try {
-      await moveTodoToCompleted(
-        todo,
-        user.id,
-        fromInbox ? "inbox_todos" : "todos"
-      );
+      await moveTodoToCompleted(todo.id, user.id);
 
-      const completedTodo = { ...todo, completedAt: Date.now() };
+      const completedTodo = { ...todo, status: 'completed' as TodoStatus, completedAt: Date.now() };
       setCompletedTodos((prev) => [completedTodo, ...prev]);
 
       if (fromInbox) {
@@ -272,9 +273,10 @@ export const useSupabaseData = () => {
     if (!user) return;
 
     try {
-      await moveTodoToInbox(todo, user.id);
+      await moveTodoToInbox(todo.id, user.id);
       setTodos((prev) => prev.filter((t) => t.id !== todo.id));
-      setInboxTodos((prev) => [todo, ...prev]);
+      const updatedTodo = { ...todo, status: 'inbox' as TodoStatus };
+      setInboxTodos((prev) => [updatedTodo, ...prev]);
     } catch (error) {
       console.error("Error moving to inbox:", error);
     }
@@ -284,9 +286,10 @@ export const useSupabaseData = () => {
     if (!user) return;
 
     try {
-      await moveTodoToMain(todo, user.id);
+      await moveTodoToMain(todo.id, user.id);
       setInboxTodos((prev) => prev.filter((t) => t.id !== todo.id));
-      setTodos((prev) => [todo, ...prev]);
+      const updatedTodo = { ...todo, status: 'active' as TodoStatus };
+      setTodos((prev) => [updatedTodo, ...prev]);
     } catch (error) {
       console.error("Error moving to main:", error);
     }
@@ -298,7 +301,7 @@ export const useSupabaseData = () => {
     try {
       const newCoins = coins + amount;
       await upsertUserSettings(user.id, { coins: newCoins });
-      await clearCompletedTodos(user.id);
+      await archiveCompletedTodos(user.id);
 
       setCoins(newCoins);
       setCompletedTodos([]);

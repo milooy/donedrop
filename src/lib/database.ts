@@ -1,16 +1,20 @@
 import { Todo } from "@/hooks/useSupabaseData";
 import { supabase } from "./supabase";
 
+export type TodoStatus = 'inbox' | 'active' | 'completed' | 'archived';
+
 export interface TodoDatabase {
   id: number;
   user_id: string;
   text: string;
   color: "yellow" | "pink" | "blue";
+  status: TodoStatus;
   is_pinned: boolean;
   pinned_at: string | null;
+  completed_at: string | null;
+  archived_at: string | null;
   created_at: string;
-  updated_at?: string;
-  completed_at?: string;
+  updated_at: string;
 }
 
 export interface UserSettings {
@@ -27,11 +31,15 @@ export const convertTodoFromDB = (dbTodo: TodoDatabase) => ({
   id: dbTodo.id,
   text: dbTodo.text,
   color: dbTodo.color,
+  status: dbTodo.status,
   isPinned: dbTodo.is_pinned,
   pinnedAt: dbTodo.pinned_at ? new Date(dbTodo.pinned_at).getTime() : undefined,
   createdAt: new Date(dbTodo.created_at).getTime(),
   completedAt: dbTodo.completed_at
     ? new Date(dbTodo.completed_at).getTime()
+    : undefined,
+  archivedAt: dbTodo.archived_at
+    ? new Date(dbTodo.archived_at).getTime()
     : undefined,
 });
 
@@ -42,22 +50,36 @@ export const convertTodoToDB = (
   user_id: userId,
   text: todo.text,
   color: todo.color,
+  status: todo.status,
   is_pinned: todo.isPinned,
   pinned_at: todo.pinnedAt ? new Date(todo.pinnedAt).toISOString() : null,
   created_at: new Date(todo.createdAt).toISOString(),
   completed_at: todo.completedAt
     ? new Date(todo.completedAt).toISOString()
-    : undefined,
+    : null,
+  archived_at: todo.archivedAt
+    ? new Date(todo.archivedAt).toISOString()
+    : null,
 });
 
-// Todos CRUD
-export const fetchTodos = async (userId: string) => {
-  const { data, error } = await supabase
+// 통합 Todos CRUD
+export const fetchTodos = async (userId: string, status?: TodoStatus | TodoStatus[]) => {
+  let query = supabase
     .from("todos")
     .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .eq("user_id", userId);
+  
+  if (status) {
+    if (Array.isArray(status)) {
+      query = query.in("status", status);
+    } else {
+      query = query.eq("status", status);
+    }
+  }
+  
+  query = query.order("created_at", { ascending: false });
 
+  const { data, error } = await query;
   if (error) throw error;
   return data?.map(convertTodoFromDB) || [];
 };
@@ -86,6 +108,11 @@ export const updateTodo = async (
     updateData.text = updates.text;
   }
 
+  // status 업데이트
+  if (updates.status !== undefined) {
+    updateData.status = updates.status;
+  }
+
   // pin 상태 업데이트
   if (updates.isPinned !== undefined) {
     updateData.is_pinned = updates.isPinned;
@@ -95,6 +122,20 @@ export const updateTodo = async (
   if (updates.pinnedAt !== undefined) {
     updateData.pinned_at = updates.pinnedAt
       ? new Date(updates.pinnedAt).toISOString()
+      : null;
+  }
+
+  // 완료 시간 업데이트
+  if (updates.completedAt !== undefined) {
+    updateData.completed_at = updates.completedAt
+      ? new Date(updates.completedAt).toISOString()
+      : null;
+  }
+
+  // 아카이브 시간 업데이트
+  if (updates.archivedAt !== undefined) {
+    updateData.archived_at = updates.archivedAt
+      ? new Date(updates.archivedAt).toISOString()
       : null;
   }
 
@@ -124,117 +165,53 @@ export const deleteTodo = async (id: number, userId: string) => {
   if (error) throw error;
 };
 
-// Inbox Todos CRUD
-export const fetchInboxTodos = async (userId: string) => {
-  const { data, error } = await supabase
-    .from("inbox_todos")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+// 상태 기반 헬퍼 함수들
+export const fetchActiveTodos = (userId: string) => fetchTodos(userId, 'active');
+export const fetchInboxTodos = (userId: string) => fetchTodos(userId, 'inbox');
+export const fetchCompletedTodos = (userId: string) => fetchTodos(userId, 'completed');
+export const fetchArchivedTodos = (userId: string) => fetchTodos(userId, 'archived');
 
-  if (error) throw error;
-  return data?.map(convertTodoFromDB) || [];
+// 상태 변경 헬퍼 함수들
+export const markTodoCompleted = async (id: number, userId: string) => {
+  return updateTodo(id, { 
+    status: 'completed', 
+    completedAt: Date.now() 
+  }, userId);
 };
 
-export const insertInboxTodo = async (todo: Todo, userId: string) => {
-  const { data, error } = await supabase
-    .from("inbox_todos")
-    .insert(convertTodoToDB(todo, userId))
-    .select()
-    .single();
-
-  if (error) throw error;
-  return convertTodoFromDB(data);
+export const moveTodoToInbox = async (id: number, userId: string) => {
+  return updateTodo(id, { status: 'inbox' }, userId);
 };
 
-export const updateInboxTodo = async (
-  id: number,
-  updates: Partial<Todo>,
-  userId: string
-) => {
-  // 업데이트할 데이터 구성
-  const updateData: Record<string, unknown> = {};
-
-  // text 업데이트
-  if (updates.text !== undefined) {
-    updateData.text = updates.text;
-  }
-
-  // pin 상태 업데이트
-  if (updates.isPinned !== undefined) {
-    updateData.is_pinned = updates.isPinned;
-  }
-
-  // pin 시간 업데이트
-  if (updates.pinnedAt !== undefined) {
-    updateData.pinned_at = updates.pinnedAt
-      ? new Date(updates.pinnedAt).toISOString()
-      : null;
-  }
-
-  // 업데이트 시간
-  updateData.updated_at = new Date().toISOString();
-
-  const { data, error } = await supabase
-    .from("inbox_todos")
-    .update(updateData)
-    .eq("id", id)
-    .eq("user_id", userId)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  return convertTodoFromDB(data);
+export const moveTodoToActive = async (id: number, userId: string) => {
+  return updateTodo(id, { status: 'active' }, userId);
 };
 
-export const deleteInboxTodo = async (id: number, userId: string) => {
+export const archiveCompletedTodos = async (userId: string) => {
   const { error } = await supabase
-    .from("inbox_todos")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", userId);
+    .from("todos")
+    .update({ 
+      status: 'archived',
+      archived_at: new Date().toISOString()
+    })
+    .eq("user_id", userId)
+    .eq("status", "completed");
 
   if (error) throw error;
 };
 
-// Completed Todos CRUD
-export const fetchCompletedTodos = async (userId: string) => {
-  const { data, error } = await supabase
-    .from("completed_todos")
-    .select("*")
-    .eq("user_id", userId)
-    .order("completed_at", { ascending: false });
-
-  if (error) throw error;
-  return data?.map(convertTodoFromDB) || [];
+// 레거시 호환성을 위한 함수들 (점진적 마이그레이션용)
+export const insertInboxTodo = async (todo: Todo, userId: string) => {
+  return insertTodo({ ...todo, status: 'inbox' }, userId);
 };
 
 export const insertCompletedTodo = async (todo: Todo, userId: string) => {
-  const { data, error } = await supabase
-    .from("completed_todos")
-    .insert({
-      ...convertTodoToDB(todo, userId),
-      completed_at:
-        todo.completedAt !== undefined
-          ? new Date(todo.completedAt).toISOString()
-          : undefined,
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return convertTodoFromDB(data);
+  return insertTodo({ ...todo, status: 'completed' }, userId);
 };
 
-export const clearCompletedTodos = async (userId: string) => {
-  const { error } = await supabase
-    .from("completed_todos")
-    .delete()
-    .eq("user_id", userId);
-
-  if (error) throw error;
-};
+export const updateInboxTodo = updateTodo;
+export const deleteInboxTodo = deleteTodo;
+export const clearCompletedTodos = archiveCompletedTodos;
 
 // User Settings CRUD
 export const fetchUserSettings = async (
@@ -268,34 +245,14 @@ export const upsertUserSettings = async (
   return data;
 };
 
-// Move todo between tables
+// 레거시 테이블 간 이동 함수들 (기존 코드 호환성용)
 export const moveTodoToCompleted = async (
-  todo: Todo,
-  userId: string,
-  fromTable: "todos" | "inbox_todos"
+  todoId: number,
+  userId: string
 ) => {
-  const completedTodo = {
-    ...todo,
-    completedAt: Date.now(),
-  };
-
-  // Insert to completed_todos
-  await insertCompletedTodo(completedTodo, userId);
-
-  // Delete from source table
-  if (fromTable === "todos") {
-    await deleteTodo(todo.id, userId);
-  } else {
-    await deleteInboxTodo(todo.id, userId);
-  }
+  return markTodoCompleted(todoId, userId);
 };
 
-export const moveTodoToInbox = async (todo: Todo, userId: string) => {
-  await insertInboxTodo(todo, userId);
-  await deleteTodo(todo.id, userId);
-};
-
-export const moveTodoToMain = async (todo: Todo, userId: string) => {
-  await insertTodo(todo, userId);
-  await deleteInboxTodo(todo.id, userId);
+export const moveTodoToMain = async (todoId: number, userId: string) => {
+  return moveTodoToActive(todoId, userId);
 };
