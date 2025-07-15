@@ -1,4 +1,4 @@
-import { type RitualCompletion, type Ritual } from "@/hooks/useSupabaseData";
+import { type RitualGem } from "@/hooks/useSupabaseData";
 
 /**
  * 오늘 날짜를 YYYY-MM-DD 형식으로 반환 (로컬 시간대 기준)
@@ -22,61 +22,33 @@ const getDaysDifference = (date1: string, date2: string): number => {
 };
 
 /**
- * 특정 날짜에 모든 활성 리추얼이 완료되었는지 확인
- */
-const isAllRitualsCompleted = (
-  completion: RitualCompletion,
-  activeRituals: Ritual[]
-): boolean => {
-  if (activeRituals.length === 0) return false;
-  
-  return activeRituals.every(ritual => 
-    completion.completedRitualIds.includes(ritual.id)
-  );
-};
-
-/**
  * 현재 스트릭 계산 (오늘부터 역순으로 연속 완료일 계산)
+ * 보석이 있는 날 = 모든 리추얼을 완료한 날
  */
-export const calculateCurrentStreak = (
-  completions: RitualCompletion[],
-  activeRituals: Ritual[]
-): number => {
-  if (activeRituals.length === 0) return 0;
-
-  const today = getTodayString();
-  const sortedCompletions = completions
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+export const calculateCurrentStreak = (gems: RitualGem[]): number => {
+  if (gems.length === 0) return 0;
 
   let streak = 0;
-  let currentDate = today;
+  let currentDate = getTodayString();
+
+  // 보석들을 날짜별로 Set에 저장 (빠른 검색을 위해)
+  const gemDates = new Set(gems.map(gem => gem.date));
 
   // 오늘부터 역순으로 확인
-  for (let i = 0; i < sortedCompletions.length; i++) {
-    const completion = sortedCompletions[i];
-    
-    // 현재 확인 중인 날짜와 완료 기록 날짜가 일치하는지 확인
-    if (completion.date === currentDate) {
-      // 모든 리추얼이 완료되었는지 확인
-      if (isAllRitualsCompleted(completion, activeRituals)) {
-        streak++;
-        // 다음 날짜로 이동 (하루 전)
-        const nextDate = new Date(currentDate);
-        nextDate.setDate(nextDate.getDate() - 1);
-        currentDate = nextDate.toISOString().split('T')[0];
-      } else {
-        // 모든 리추얼이 완료되지 않았으면 스트릭 중단
-        break;
-      }
+  while (true) {
+    if (gemDates.has(currentDate)) {
+      streak++;
+      // 다음 날짜로 이동 (하루 전)
+      const nextDate = new Date(currentDate);
+      nextDate.setDate(nextDate.getDate() - 1);
+      currentDate = nextDate.toISOString().split('T')[0];
     } else {
-      // 연속되지 않은 날짜가 나오면 스트릭 중단
-      const daysDiff = getDaysDifference(completion.date, currentDate);
-      if (daysDiff > 1) break;
-      
-      // 하루 차이인 경우, 현재 날짜 업데이트하고 다시 확인
-      currentDate = completion.date;
-      i--; // 같은 completion을 다시 확인
+      // 보석이 없으면 스트릭 중단
+      break;
     }
+    
+    // 너무 오래된 날짜까지는 확인하지 않음 (365일 제한)
+    if (streak >= 365) break;
   }
 
   return streak;
@@ -84,64 +56,40 @@ export const calculateCurrentStreak = (
 
 /**
  * 최고 스트릭 계산 (전체 기록에서 가장 긴 연속 완료일)
+ * 보석이 있는 날 = 모든 리추얼을 완료한 날
  */
-export const calculateBestStreak = (
-  completions: RitualCompletion[],
-  activeRituals: Ritual[]
-): number => {
-  if (activeRituals.length === 0) return 0;
+export const calculateBestStreak = (gems: RitualGem[]): number => {
+  if (gems.length === 0) return 0;
 
-  const sortedCompletions = completions
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  // 날짜별로 정렬
+  const sortedGems = gems
+    .map(gem => gem.date)
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
   let bestStreak = 0;
   let currentStreak = 0;
   let lastDate: string | null = null;
 
-  for (const completion of sortedCompletions) {
-    // 모든 리추얼이 완료되었는지 확인
-    if (isAllRitualsCompleted(completion, activeRituals)) {
-      // 첫 번째 완료 날짜이거나 연속된 날짜인 경우
-      if (!lastDate || getDaysDifference(lastDate, completion.date) === 1) {
-        currentStreak++;
-        bestStreak = Math.max(bestStreak, currentStreak);
-      } else {
-        // 연속되지 않으면 새로운 스트릭 시작
-        currentStreak = 1;
-      }
-      lastDate = completion.date;
+  for (const date of sortedGems) {
+    // 첫 번째 날짜이거나 연속된 날짜인 경우
+    if (!lastDate || getDaysDifference(lastDate, date) === 1) {
+      currentStreak++;
+      bestStreak = Math.max(bestStreak, currentStreak);
     } else {
-      // 모든 리추얼이 완료되지 않았으면 스트릭 리셋
-      currentStreak = 0;
-      lastDate = null;
+      // 연속되지 않으면 새로운 스트릭 시작
+      currentStreak = 1;
+      bestStreak = Math.max(bestStreak, currentStreak);
     }
+    lastDate = date;
   }
 
   return bestStreak;
 };
 
 /**
- * 오늘 완료된 리추얼 ID 목록 반환
+ * 오늘 보석이 있는지 확인 (모든 리추얼 완료 여부)
  */
-export const getTodayCompletedRitualIds = (
-  completions: RitualCompletion[]
-): number[] => {
+export const hasGemToday = (gems: RitualGem[]): boolean => {
   const today = getTodayString();
-  const todayCompletion = completions.find(c => c.date === today);
-  return todayCompletion?.completedRitualIds || [];
-};
-
-/**
- * 모든 활성 리추얼이 오늘 완료되었는지 확인
- */
-export const isAllRitualsCompletedToday = (
-  completions: RitualCompletion[],
-  activeRituals: Ritual[]
-): boolean => {
-  if (activeRituals.length === 0) return false;
-  
-  const todayCompletedIds = getTodayCompletedRitualIds(completions);
-  return activeRituals.every(ritual => 
-    todayCompletedIds.includes(ritual.id)
-  );
+  return gems.some(gem => gem.date === today);
 };

@@ -28,6 +28,8 @@ import {
 import { supabase } from "@/lib/supabase";
 import {
   getTodayString,
+  calculateCurrentStreak,
+  calculateBestStreak,
 } from "@/lib/utils/streak";
 import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
@@ -611,9 +613,9 @@ export const useSupabaseData = () => {
   const today = getTodayString();
   const todayCompletedRitualIds = getTodayCompletedRitualIds(ritualCompleteLogs, today);
   
-  // TODO: streak 계산 함수들을 새로운 구조에 맞게 수정해야 함
-  const currentStreak = 0; // 임시값
-  const bestStreak = 0; // 임시값
+  // RitualGem 기반 스트릭 계산
+  const currentStreak = calculateCurrentStreak(ritualGems);
+  const bestStreak = calculateBestStreak(ritualGems);
 
 
   return {
