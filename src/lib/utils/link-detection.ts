@@ -28,11 +28,11 @@ export function extractDomain(url: string): string {
 export function detectLinks(text: string): LinkInfo[] {
   const links: LinkInfo[] = [];
   const matches = text.matchAll(URL_REGEX);
-  
+
   for (const match of matches) {
     const url = match[0];
     const domain = extractDomain(url);
-    
+
     links.push({
       url,
       domain,
@@ -41,7 +41,7 @@ export function detectLinks(text: string): LinkInfo[] {
       originalText: url,
     });
   }
-  
+
   return links;
 }
 
@@ -55,27 +55,25 @@ export function replaceLinksWithDomains(text: string): {
   links: LinkInfo[];
 } {
   const links = detectLinks(text);
-  
+
   if (links.length === 0) {
     return { displayText: text, links: [] };
   }
-  
+
   let displayText = text;
-  let offset = 0;
-  
+
   // 뒤에서부터 대체해서 인덱스 변화 방지
   const sortedLinks = [...links].sort((a, b) => b.startIndex - a.startIndex);
-  
+
   for (const link of sortedLinks) {
     const before = displayText.slice(0, link.startIndex);
     const after = displayText.slice(link.endIndex);
     displayText = before + link.domain + after;
-    
+
     // 새로운 인덱스 계산
-    const lengthDiff = link.domain.length - link.originalText.length;
     link.endIndex = link.startIndex + link.domain.length;
   }
-  
+
   return { displayText, links: sortedLinks };
 }
 
@@ -87,7 +85,7 @@ export function replaceLinksWithDomains(text: string): {
 export function isPureLink(text: string): boolean {
   const trimmedText = text.trim();
   const links = detectLinks(trimmedText);
-  
+
   return links.length === 1 && links[0].originalText === trimmedText;
 }
 
@@ -105,9 +103,9 @@ export function getDisplayTextLength(text: string): number {
  * 링크 정보 인터페이스
  */
 export interface LinkInfo {
-  url: string;           // 원본 URL
-  domain: string;        // 도메인명
-  startIndex: number;    // 텍스트 내 시작 위치
-  endIndex: number;      // 텍스트 내 끝 위치
-  originalText: string;  // 원본 링크 텍스트
+  url: string; // 원본 URL
+  domain: string; // 도메인명
+  startIndex: number; // 텍스트 내 시작 위치
+  endIndex: number; // 텍스트 내 끝 위치
+  originalText: string; // 원본 링크 텍스트
 }

@@ -1,11 +1,11 @@
-import { memo, useState, useCallback } from "react";
-import { User } from "@supabase/supabase-js";
+import { SHADOW_STYLES } from "@/lib/constants";
 import {
   getUserAvatar,
   getUserFirstName,
   getUserInitial,
 } from "@/lib/utils/user";
-import { SHADOW_STYLES } from "@/lib/constants";
+import { User } from "@supabase/supabase-js";
+import { memo, useCallback, useState } from "react";
 
 interface FrameBusinessCardProps {
   user: User | null;
