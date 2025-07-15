@@ -1,7 +1,7 @@
 import { Todo, Ritual, RitualCompletion } from "@/hooks/useSupabaseData";
 import { supabase } from "./supabase";
 
-export type TodoStatus = 'inbox' | 'active' | 'completed' | 'archived';
+export type TodoStatus = "inbox" | "active" | "completed" | "archived";
 
 export interface TodoDatabase {
   id: number;
@@ -43,6 +43,15 @@ export interface RitualCompletionDatabase {
   completed_ritual_ids: number[];
   created_at: string;
   updated_at: string;
+  is_archived?: boolean;
+  archived_at?: string;
+}
+
+export interface GemDatabase {
+  id: number;
+  user_id: string;
+  created_at: string;
+  is_from_ritual: boolean;
 }
 
 // Todo 변환 함수
@@ -76,18 +85,16 @@ export const convertTodoToDB = (
   completed_at: todo.completedAt
     ? new Date(todo.completedAt).toISOString()
     : null,
-  archived_at: todo.archivedAt
-    ? new Date(todo.archivedAt).toISOString()
-    : null,
+  archived_at: todo.archivedAt ? new Date(todo.archivedAt).toISOString() : null,
 });
 
 // 통합 Todos CRUD
-export const fetchTodos = async (userId: string, status?: TodoStatus | TodoStatus[]) => {
-  let query = supabase
-    .from("todos")
-    .select("*")
-    .eq("user_id", userId);
-  
+export const fetchTodos = async (
+  userId: string,
+  status?: TodoStatus | TodoStatus[]
+) => {
+  let query = supabase.from("todos").select("*").eq("user_id", userId);
+
   if (status) {
     if (Array.isArray(status)) {
       query = query.in("status", status);
@@ -95,7 +102,7 @@ export const fetchTodos = async (userId: string, status?: TodoStatus | TodoStatu
       query = query.eq("status", status);
     }
   }
-  
+
   query = query.order("created_at", { ascending: false });
 
   const { data, error } = await query;
@@ -185,33 +192,40 @@ export const deleteTodo = async (id: number, userId: string) => {
 };
 
 // 상태 기반 헬퍼 함수들
-export const fetchActiveTodos = (userId: string) => fetchTodos(userId, 'active');
-export const fetchInboxTodos = (userId: string) => fetchTodos(userId, 'inbox');
-export const fetchCompletedTodos = (userId: string) => fetchTodos(userId, 'completed');
-export const fetchArchivedTodos = (userId: string) => fetchTodos(userId, 'archived');
+export const fetchActiveTodos = (userId: string) =>
+  fetchTodos(userId, "active");
+export const fetchInboxTodos = (userId: string) => fetchTodos(userId, "inbox");
+export const fetchCompletedTodos = (userId: string) =>
+  fetchTodos(userId, "completed");
+export const fetchArchivedTodos = (userId: string) =>
+  fetchTodos(userId, "archived");
 
 // 상태 변경 헬퍼 함수들
 export const markTodoCompleted = async (id: number, userId: string) => {
-  return updateTodo(id, { 
-    status: 'completed', 
-    completedAt: Date.now() 
-  }, userId);
+  return updateTodo(
+    id,
+    {
+      status: "completed",
+      completedAt: Date.now(),
+    },
+    userId
+  );
 };
 
 export const moveTodoToInbox = async (id: number, userId: string) => {
-  return updateTodo(id, { status: 'inbox' }, userId);
+  return updateTodo(id, { status: "inbox" }, userId);
 };
 
 export const moveTodoToActive = async (id: number, userId: string) => {
-  return updateTodo(id, { status: 'active' }, userId);
+  return updateTodo(id, { status: "active" }, userId);
 };
 
 export const archiveCompletedTodos = async (userId: string) => {
   const { error } = await supabase
     .from("todos")
-    .update({ 
-      status: 'archived',
-      archived_at: new Date().toISOString()
+    .update({
+      status: "archived",
+      archived_at: new Date().toISOString(),
     })
     .eq("user_id", userId)
     .eq("status", "completed");
@@ -221,11 +235,11 @@ export const archiveCompletedTodos = async (userId: string) => {
 
 // 레거시 호환성을 위한 함수들 (점진적 마이그레이션용)
 export const insertInboxTodo = async (todo: Todo, userId: string) => {
-  return insertTodo({ ...todo, status: 'inbox' }, userId);
+  return insertTodo({ ...todo, status: "inbox" }, userId);
 };
 
 export const insertCompletedTodo = async (todo: Todo, userId: string) => {
-  return insertTodo({ ...todo, status: 'completed' }, userId);
+  return insertTodo({ ...todo, status: "completed" }, userId);
 };
 
 export const updateInboxTodo = updateTodo;
@@ -265,10 +279,7 @@ export const upsertUserSettings = async (
 };
 
 // 레거시 테이블 간 이동 함수들 (기존 코드 호환성용)
-export const moveTodoToCompleted = async (
-  todoId: number,
-  userId: string
-) => {
+export const moveTodoToCompleted = async (todoId: number, userId: string) => {
   return markTodoCompleted(todoId, userId);
 };
 
@@ -304,6 +315,8 @@ export const convertRitualCompletionFromDB = (
   date: dbCompletion.date,
   completedRitualIds: dbCompletion.completed_ritual_ids,
   createdAt: new Date(dbCompletion.created_at).getTime(),
+  isArchived: dbCompletion.is_archived,
+  archivedAt: dbCompletion.archived_at ? new Date(dbCompletion.archived_at).getTime() : undefined,
 });
 
 export const convertRitualCompletionToDB = (
@@ -314,6 +327,8 @@ export const convertRitualCompletionToDB = (
   date: completion.date,
   completed_ritual_ids: completion.completedRitualIds,
   created_at: new Date(completion.createdAt).toISOString(),
+  is_archived: completion.isArchived,
+  archived_at: completion.archivedAt ? new Date(completion.archivedAt).toISOString() : undefined,
 });
 
 // Ritual CRUD
@@ -401,15 +416,77 @@ export const upsertRitualCompletion = async (
 ) => {
   const { data, error } = await supabase
     .from("ritual_completions")
-    .upsert({
-      user_id: userId,
-      date: completion.date,
-      completed_ritual_ids: completion.completedRitualIds,
-      updated_at: new Date().toISOString(),
-    })
+    .upsert(
+      {
+        user_id: userId,
+        date: completion.date,
+        completed_ritual_ids: completion.completedRitualIds,
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "user_id,date",
+        ignoreDuplicates: false,
+      }
+    )
     .select()
     .single();
 
   if (error) throw error;
   return convertRitualCompletionFromDB(data);
 };
+
+// RitualCompletion 아카이브 (유리병 비우기 시 사용)
+export const archiveRitualCompletions = async (userId: string) => {
+  const { error } = await supabase
+    .from("ritual_completions")
+    .update({
+      is_archived: true,
+      archived_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId)
+    .eq("is_archived", false);
+
+  if (error) throw error;
+};
+
+// Gem functions
+export const insertGem = async (userId: string, isFromRitual = true) => {
+  const { data, error } = await supabase
+    .from("gems")
+    .insert({
+      user_id: userId,
+      is_from_ritual: isFromRitual,
+      created_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return convertGemFromDB(data);
+};
+
+export const fetchGems = async (userId: string) => {
+  const { data, error } = await supabase
+    .from("gems")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return data?.map(convertGemFromDB) || [];
+};
+
+export const deleteAllGems = async (userId: string) => {
+  const { error } = await supabase.from("gems").delete().eq("user_id", userId);
+
+  if (error) throw error;
+};
+
+// Gem conversion function
+const convertGemFromDB = (dbGem: GemDatabase) => ({
+  id: dbGem.id,
+  userId: dbGem.user_id,
+  createdAt: new Date(dbGem.created_at).getTime(),
+  isFromRitual: dbGem.is_from_ritual,
+});

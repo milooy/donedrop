@@ -65,9 +65,6 @@ export const RitualWidget = memo<RitualWidgetProps>(
       zIndex: 50,
     };
 
-    const allCompleted =
-      rituals.length > 0 &&
-      rituals.every((ritual) => completedRitualIds.includes(ritual.id));
 
     return (
       <div className="absolute top-28 right-4 z-30">
@@ -213,17 +210,6 @@ export const RitualWidget = memo<RitualWidgetProps>(
             )}
           </div>
 
-          {/* 완료 상태 표시 */}
-          {allCompleted && rituals.length > 0 && (
-            <div className="bg-green-100 border border-green-300 rounded-lg p-2 mb-3">
-              <div className="text-xs text-green-800 text-center font-medium">
-                🎉 모든 리추얼 완료!
-              </div>
-              <div className="text-xs text-green-600 text-center">
-                보석 5개 획득!
-              </div>
-            </div>
-          )}
 
           {/* 스트릭 정보 */}
           <div className="border-t border-gray-300 pt-2 text-xs text-gray-600">

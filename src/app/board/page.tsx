@@ -23,6 +23,7 @@ import { DroppableArea } from "@/components/dnd/DroppableArea";
 import { DragOverlayContent } from "@/components/dnd/DragOverlayContent";
 import { CompletedTodosModal } from "@/components/modals/CompletedTodosModal";
 import { CoinRewardModal } from "@/components/modals/CoinRewardModal";
+import { RitualCompletionModal } from "@/components/modals/RitualCompletionModal";
 import { RitualWidget } from "@/components/ritual/RitualWidget";
 
 // Styles
@@ -71,6 +72,15 @@ export default function BoardPage() {
     editRitual,
     removeRitual,
     toggleRitual,
+    claimRitualReward,
+    
+    // Ritual modal
+    showRitualCompletionModal,
+    setShowRitualCompletionModal,
+    completedRitualsForModal,
+    
+    // Gems
+    gems,
   } = supabaseData;
 
   // Custom hooks
@@ -183,6 +193,7 @@ export default function BoardPage() {
           <div className="absolute bottom-10 right-10 p-6 z-20">
             <GlassJar
               completedTodos={completedTodos}
+              gems={gems}
               completedCount={completedTodos.length}
               onClick={() => setIsModalOpen(true)}
               isClient={isClient}
@@ -230,6 +241,13 @@ export default function BoardPage() {
             isOpen={showCoinRewardModal}
             onClose={handleRewardClose}
             onAccept={handleRewardAccept}
+          />
+
+          <RitualCompletionModal
+            isOpen={showRitualCompletionModal}
+            onClose={setShowRitualCompletionModal}
+            onClaimReward={claimRitualReward}
+            completedRituals={completedRitualsForModal}
           />
         </div>
       </DndContext>

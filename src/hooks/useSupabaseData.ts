@@ -20,19 +20,20 @@ import {
   updateTodo,
   upsertRitualCompletion,
   upsertUserSettings,
+  archiveRitualCompletions,
 } from "@/lib/database";
 import { supabase } from "@/lib/supabase";
-import { 
-  calculateBestStreak, 
-  calculateCurrentStreak, 
-  getTodayCompletedRitualIds, 
-  getTodayString
+import {
+  calculateBestStreak,
+  calculateCurrentStreak,
+  getTodayCompletedRitualIds,
+  getTodayString,
 } from "@/lib/utils/streak";
 import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 
 export type PostItColor = "yellow" | "pink" | "blue";
-export type TodoStatus = 'inbox' | 'active' | 'completed' | 'archived';
+export type TodoStatus = "inbox" | "active" | "completed" | "archived";
 
 export interface Todo {
   id: number;
@@ -59,6 +60,16 @@ export interface RitualCompletion {
   date: string; // YYYY-MM-DD format
   completedRitualIds: number[];
   createdAt: number;
+  isArchived?: boolean; // 유리병 비우기 시 true로 설정
+  archivedAt?: number;  // 아카이브된 시간
+}
+
+export interface Gem {
+  id: number;
+  userId: string;
+  createdAt: number; // 보석을 얻은 시간
+  isFromRitual: boolean; // 리추얼 완료로 얻은 보석인지
+  date?: string; // 리추얼 완료 날짜 (YYYY-MM-DD)
 }
 
 export const useSupabaseData = () => {
@@ -76,7 +87,55 @@ export const useSupabaseData = () => {
 
   // Ritual states
   const [rituals, setRituals] = useState<Ritual[]>([]);
-  const [ritualCompletions, setRitualCompletions] = useState<RitualCompletion[]>([]);
+  const [ritualCompletions, setRitualCompletions] = useState<
+    RitualCompletion[]
+  >([]);
+  const [showRitualCompletionModal, setShowRitualCompletionModal] =
+    useState(false);
+  const [completedRitualsForModal, setCompletedRitualsForModal] = useState<
+    Ritual[]
+  >([]);
+
+  // Gem states
+  const [gems, setGems] = useState<Gem[]>([]);
+
+  // ritual_completions에서 보석 계산하는 함수
+  const calculateGemsFromRitualCompletions = (
+    ritualCompletions: RitualCompletion[],
+    activeRituals: Ritual[]
+  ): Gem[] => {
+    const gems: Gem[] = [];
+    const activeRitualIds = activeRituals.map(r => r.id);
+    
+    // 아카이브되지 않은 ritual_completions만 처리
+    const nonArchivedCompletions = ritualCompletions.filter(completion => !completion.isArchived);
+    
+    nonArchivedCompletions.forEach(completion => {
+      // 모든 활성 리추얼을 완료한 경우에만 보석 생성
+      const hasCompletedAllRituals = activeRitualIds.length > 0 && 
+        activeRitualIds.every(id => completion.completedRitualIds.includes(id));
+      
+      if (hasCompletedAllRituals) {
+        gems.push({
+          id: completion.id,
+          userId: user?.id || '',
+          createdAt: completion.createdAt,
+          isFromRitual: true,
+          date: completion.date,
+        });
+      }
+    });
+    
+    return gems;
+  };
+
+  // ritual_completions과 rituals가 변경될 때마다 보석 계산
+  useEffect(() => {
+    if (user && ritualCompletions.length >= 0 && rituals.length >= 0) {
+      const calculatedGems = calculateGemsFromRitualCompletions(ritualCompletions, rituals);
+      setGems(calculatedGems);
+    }
+  }, [user, ritualCompletions, rituals]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initialize auth
   useEffect(() => {
@@ -124,15 +183,21 @@ export const useSupabaseData = () => {
       setLoading(true);
 
       // Load all data in parallel
-      const [todosData, inboxData, completedData, settingsData, ritualsData, ritualCompletionsData] =
-        await Promise.all([
-          fetchActiveTodos(user.id),
-          fetchInboxTodos(user.id),
-          fetchCompletedTodos(user.id),
-          fetchUserSettings(user.id),
-          fetchRituals(user.id),
-          fetchRitualCompletions(user.id),
-        ]);
+      const [
+        todosData,
+        inboxData,
+        completedData,
+        settingsData,
+        ritualsData,
+        ritualCompletionsData,
+      ] = await Promise.all([
+        fetchActiveTodos(user.id),
+        fetchInboxTodos(user.id),
+        fetchCompletedTodos(user.id),
+        fetchUserSettings(user.id),
+        fetchRituals(user.id),
+        fetchRitualCompletions(user.id),
+      ]);
 
       setTodos(todosData);
       setInboxTodos(inboxData);
@@ -160,7 +225,7 @@ export const useSupabaseData = () => {
       id: Date.now(), // Temporary ID
       text,
       color,
-      status: 'active' as TodoStatus,
+      status: "active" as TodoStatus,
       isPinned: false,
       createdAt: Date.now(),
     };
@@ -180,7 +245,7 @@ export const useSupabaseData = () => {
       id: Date.now(),
       text,
       color,
-      status: 'inbox' as TodoStatus,
+      status: "inbox" as TodoStatus,
       isPinned: false,
       createdAt: Date.now(),
     };
@@ -293,7 +358,11 @@ export const useSupabaseData = () => {
     try {
       await moveTodoToCompleted(todo.id, user.id);
 
-      const completedTodo = { ...todo, status: 'completed' as TodoStatus, completedAt: Date.now() };
+      const completedTodo = {
+        ...todo,
+        status: "completed" as TodoStatus,
+        completedAt: Date.now(),
+      };
       setCompletedTodos((prev) => [completedTodo, ...prev]);
 
       if (fromInbox) {
@@ -312,7 +381,7 @@ export const useSupabaseData = () => {
     try {
       await moveTodoToInbox(todo.id, user.id);
       setTodos((prev) => prev.filter((t) => t.id !== todo.id));
-      const updatedTodo = { ...todo, status: 'inbox' as TodoStatus };
+      const updatedTodo = { ...todo, status: "inbox" as TodoStatus };
       setInboxTodos((prev) => [updatedTodo, ...prev]);
     } catch (error) {
       console.error("Error moving to inbox:", error);
@@ -325,7 +394,7 @@ export const useSupabaseData = () => {
     try {
       await moveTodoToMain(todo.id, user.id);
       setInboxTodos((prev) => prev.filter((t) => t.id !== todo.id));
-      const updatedTodo = { ...todo, status: 'active' as TodoStatus };
+      const updatedTodo = { ...todo, status: "active" as TodoStatus };
       setTodos((prev) => [updatedTodo, ...prev]);
     } catch (error) {
       console.error("Error moving to main:", error);
@@ -336,12 +405,17 @@ export const useSupabaseData = () => {
     if (!user) return;
 
     try {
-      const newCoins = coins + amount;
+      // 할일들과 보석들을 코인으로 변환
+      const totalGemsValue = gems.length * 5; // 보석 1개당 5코인
+      const newCoins = coins + amount + totalGemsValue;
+
       await upsertUserSettings(user.id, { coins: newCoins });
       await archiveCompletedTodos(user.id);
+      await archiveRitualCompletions(user.id); // ritual_completions 아카이브
 
       setCoins(newCoins);
       setCompletedTodos([]);
+      // gems는 ritual_completions 변경으로 자동 재계산됨
     } catch (error) {
       console.error("Error rewarding coins:", error);
     }
@@ -373,10 +447,13 @@ export const useSupabaseData = () => {
   const signInWithGoogle = async () => {
     try {
       // 현재 환경에 따른 리다이렉트 URL 결정
-      const redirectTo = typeof window !== 'undefined' 
-        ? `${window.location.origin}/auth/callback`
-        : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`
-      
+      const redirectTo =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/auth/callback`
+          : `${
+              process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+            }/auth/callback`;
+
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -392,10 +469,13 @@ export const useSupabaseData = () => {
   const signInWithGitHub = async () => {
     try {
       // 현재 환경에 따른 리다이렉트 URL 결정
-      const redirectTo = typeof window !== 'undefined' 
-        ? `${window.location.origin}/auth/callback`
-        : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`
-      
+      const redirectTo =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/auth/callback`
+          : `${
+              process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+            }/auth/callback`;
+
       await supabase.auth.signInWithOAuth({
         provider: "github",
         options: {
@@ -466,11 +546,11 @@ export const useSupabaseData = () => {
 
     const today = getTodayString();
     const todayCompletedIds = getTodayCompletedRitualIds(ritualCompletions);
-    
+
     let newCompletedIds: number[];
     if (todayCompletedIds.includes(ritualId)) {
       // 체크 해제
-      newCompletedIds = todayCompletedIds.filter(id => id !== ritualId);
+      newCompletedIds = todayCompletedIds.filter((id) => id !== ritualId);
     } else {
       // 체크
       newCompletedIds = [...todayCompletedIds, ritualId];
@@ -486,29 +566,48 @@ export const useSupabaseData = () => {
     try {
       const savedCompletion = await upsertRitualCompletion(completion, user.id);
       setRitualCompletions((prev) => {
-        const filtered = prev.filter(c => c.date !== today);
+        const filtered = prev.filter((c) => c.date !== today);
         return [savedCompletion, ...filtered];
       });
 
-      // 모든 리추얼이 완료되었는지 확인하고 보상
-      const activeRituals = rituals.filter(r => r.isActive);
-      if (activeRituals.length > 0 && 
-          newCompletedIds.length === activeRituals.length &&
-          activeRituals.every(r => newCompletedIds.includes(r.id))) {
-        // 5개 보석 보상
-        const newCoins = coins + 5;
-        await upsertUserSettings(user.id, { coins: newCoins });
-        setCoins(newCoins);
+      // 모든 리추얼이 완료되었는지 확인하고 모달 표시
+      const activeRituals = rituals.filter((r) => r.isActive);
+      if (
+        activeRituals.length > 0 &&
+        newCompletedIds.length === activeRituals.length &&
+        activeRituals.every((r) => newCompletedIds.includes(r.id))
+      ) {
+        // 완료된 리추얼 정보 저장하고 모달 표시
+        setCompletedRitualsForModal(activeRituals);
+        setShowRitualCompletionModal(true);
       }
     } catch (error) {
       console.error("Error toggling ritual:", error);
     }
   };
 
+  const claimRitualReward = async () => {
+    if (!user) return;
+
+    try {
+      // 모달만 닫기 - 보석은 이미 ritual_completions에서 계산됨
+      setShowRitualCompletionModal(false);
+      setCompletedRitualsForModal([]);
+    } catch (error) {
+      console.error("Error claiming ritual reward:", error);
+    }
+  };
+
   // Ritual computed values
   const todayCompletedRitualIds = getTodayCompletedRitualIds(ritualCompletions);
-  const currentStreak = calculateCurrentStreak(ritualCompletions, rituals.filter(r => r.isActive));
-  const bestStreak = calculateBestStreak(ritualCompletions, rituals.filter(r => r.isActive));
+  const currentStreak = calculateCurrentStreak(
+    ritualCompletions,
+    rituals.filter((r) => r.isActive)
+  );
+  const bestStreak = calculateBestStreak(
+    ritualCompletions,
+    rituals.filter((r) => r.isActive)
+  );
 
   return {
     // Auth
@@ -554,5 +653,14 @@ export const useSupabaseData = () => {
     editRitual,
     removeRitual,
     toggleRitual,
+    claimRitualReward,
+
+    // Ritual Modal
+    showRitualCompletionModal,
+    setShowRitualCompletionModal,
+    completedRitualsForModal,
+
+    // Gems
+    gems,
   };
 };

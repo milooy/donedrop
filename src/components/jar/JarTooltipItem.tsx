@@ -40,7 +40,7 @@ export const JarTooltipItem = memo<JarTooltipItemProps>(
         <TooltipTrigger asChild>
           <div
             className={`
-            w-10 h-10 border border-gray-300 rounded-xl 
+            w-8 h-8 border border-gray-300 rounded-xl 
             ${colorStyle}
             transform transition-transform hover:scale-110 cursor-pointer
           `}
