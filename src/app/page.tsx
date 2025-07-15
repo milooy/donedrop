@@ -6,12 +6,13 @@ import LoginScreen from "@/components/LoginScreen";
 
 export default function Home() {
   // Supabase 데이터 훅
-  const { user, loading, signInWithGoogle, signInWithGitHub } = useSupabaseData();
+  const { user, loading, signInWithGoogle, signInWithGitHub } =
+    useSupabaseData();
 
   // 인증된 사용자는 앱 페이지로 리다이렉트
   useEffect(() => {
     if (!loading && user) {
-      window.location.href = '/app';
+      window.location.href = "/board";
     }
   }, [user, loading]);
 
@@ -29,7 +30,12 @@ export default function Home() {
 
   // 인증되지 않은 사용자에게 로그인 화면 표시
   if (!user) {
-    return <LoginScreen onSignIn={signInWithGoogle} onGitHubSignIn={signInWithGitHub} />;
+    return (
+      <LoginScreen
+        onSignIn={signInWithGoogle}
+        onGitHubSignIn={signInWithGitHub}
+      />
+    );
   }
 
   // 인증된 사용자는 리다이렉트 되므로 빈 화면
