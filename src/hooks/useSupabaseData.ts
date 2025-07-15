@@ -95,6 +95,7 @@ export const useSupabaseData = () => {
   const [completedRitualsForModal, setCompletedRitualsForModal] = useState<
     Ritual[]
   >([]);
+  const [rewardClaimedToday, setRewardClaimedToday] = useState<string | null>(null);
 
   // Gem states
   const [gems, setGems] = useState<Gem[]>([]);
@@ -163,6 +164,7 @@ export const useSupabaseData = () => {
         setCoins(0);
         setRituals([]);
         setRitualCompletions([]);
+        setRewardClaimedToday(null);
       }
     });
 
@@ -204,6 +206,19 @@ export const useSupabaseData = () => {
       setCompletedTodos(completedData);
       setRituals(ritualsData);
       setRitualCompletions(ritualCompletionsData);
+      
+      // 오늘 이미 모든 리추얼을 완료했는지 확인
+      const today = getTodayString();
+      const activeRitualIds = ritualsData.filter(r => r.isActive).map(r => r.id);
+      const hasCompletedAllToday = ritualCompletionsData.some(completion => 
+        completion.date === today && 
+        activeRitualIds.length > 0 &&
+        activeRitualIds.every(id => completion.completedRitualIds.includes(id))
+      );
+      
+      if (hasCompletedAllToday) {
+        setRewardClaimedToday(today);
+      }
 
       if (settingsData) {
         setSelectedColor(settingsData.selected_color);
@@ -572,14 +587,18 @@ export const useSupabaseData = () => {
 
       // 모든 리추얼이 완료되었는지 확인하고 모달 표시
       const activeRituals = rituals.filter((r) => r.isActive);
-      if (
-        activeRituals.length > 0 &&
-        newCompletedIds.length === activeRituals.length &&
-        activeRituals.every((r) => newCompletedIds.includes(r.id))
-      ) {
-        // 완료된 리추얼 정보 저장하고 모달 표시
-        setCompletedRitualsForModal(activeRituals);
-        setShowRitualCompletionModal(true);
+      const activeRitualIds = activeRituals.map(r => r.id);
+      
+      // 새로운 상태: 토글 후 모든 리추얼이 완료되었는지
+      const isNowAllCompleted = activeRitualIds.length > 0 &&
+        activeRitualIds.every((id) => newCompletedIds.includes(id));
+      
+      if (isNowAllCompleted) {
+        // 오늘 이미 보상을 받았는지 확인
+        if (rewardClaimedToday !== today) {
+          setCompletedRitualsForModal(activeRituals);
+          setShowRitualCompletionModal(true);
+        }
       }
     } catch (error) {
       console.error("Error toggling ritual:", error);
@@ -590,7 +609,11 @@ export const useSupabaseData = () => {
     if (!user) return;
 
     try {
-      // 모달만 닫기 - 보석은 이미 ritual_completions에서 계산됨
+      // 오늘 보상을 받았다고 표시
+      const today = getTodayString();
+      setRewardClaimedToday(today);
+      
+      // 모달 닫기 - 보석은 이미 ritual_completions에서 계산됨
       setShowRitualCompletionModal(false);
       setCompletedRitualsForModal([]);
     } catch (error) {
