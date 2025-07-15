@@ -9,7 +9,7 @@ import {
   SHADOW_STYLES 
 } from "@/lib/constants";
 import { getMainPostItRotation } from "@/lib/utils/rotation";
-import { getDynamicTextStyle } from "@/lib/utils/text-sizing";
+import { getDynamicTextStyleWithLinks } from "@/lib/utils/text-sizing";
 
 interface PostItItemProps {
   todo: Todo;
@@ -26,8 +26,8 @@ export const PostItItem = memo<PostItItemProps>(({
 }) => {
   const rotation = getMainPostItRotation(todo.id);
   
-  // 텍스트 길이에 따른 동적 스타일 계산
-  const textStyle = useMemo(() => getDynamicTextStyle(todo.text), [todo.text]);
+  // 텍스트 길이에 따른 동적 스타일 계산 (링크 고려)
+  const textStyle = useMemo(() => getDynamicTextStyleWithLinks(todo.text), [todo.text]);
 
   const stopPropagation = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();

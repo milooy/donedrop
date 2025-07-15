@@ -31,7 +31,7 @@ export const POST_IT_BORDERS = {
 
 // 앱 설정
 export const APP_CONFIG = {
-  REWARD_COUNT: 50,
+  REWARD_COUNT: 10,
   MAX_TODO_LENGTH: 100,
   ROTATION_RANGE: {
     INPUT: 2, // -2도 ~ 2도

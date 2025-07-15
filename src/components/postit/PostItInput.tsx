@@ -9,7 +9,7 @@ import {
   APP_CONFIG 
 } from "@/lib/constants";
 import { getRandomRotation } from "@/lib/utils/rotation";
-import { getDynamicTextStyle } from "@/lib/utils/text-sizing";
+import { getDynamicTextStyleWithLinks } from "@/lib/utils/text-sizing";
 
 interface PostItInputProps {
   selectedColor: PostItColor;
@@ -27,8 +27,8 @@ export const PostItInput = memo<PostItInputProps>(({
     getRandomRotation(APP_CONFIG.ROTATION_RANGE.INPUT)
   );
   
-  // 텍스트 길이에 따른 동적 스타일 계산
-  const textStyle = useMemo(() => getDynamicTextStyle(text), [text]);
+  // 텍스트 길이에 따른 동적 스타일 계산 (링크 고려)
+  const textStyle = useMemo(() => getDynamicTextStyleWithLinks(text), [text]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();

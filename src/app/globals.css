@@ -147,4 +147,24 @@
   .text-postit {
     color: var(--postit-text-color);
   }
+
+  .postit-link {
+    color: #2563eb;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .postit-link:hover {
+    color: #1d4ed8;
+    text-decoration-style: solid;
+    transform: scale(1.02);
+  }
+
+  .postit-link-icon {
+    font-size: 0.75em;
+    opacity: 0.7;
+  }
 }

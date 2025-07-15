@@ -2,6 +2,8 @@
  * 텍스트 길이에 따른 동적 폰트 크기 계산 유틸리티
  */
 
+import { getDisplayTextLength } from "./link-detection";
+
 export interface TextSizeConfig {
   maxFontSize: number;
   minFontSize: number;
@@ -81,6 +83,55 @@ export function getDynamicTextStyle(
   config: Partial<TextSizeConfig> = {}
 ) {
   const fontSize = getDynamicFontSize(text, config);
+  const cssClass = getFontSizeClass(fontSize);
+
+  return {
+    fontSize: `${fontSize}px`,
+    cssClass,
+    lineHeight: fontSize <= 12 ? "1.3" : "1.4",
+  };
+}
+
+/**
+ * 링크가 포함된 텍스트의 표시 길이를 기준으로 동적 스타일을 반환합니다.
+ * @param text - 텍스트 내용
+ * @param config - 폰트 크기 설정 (선택사항)
+ * @returns 인라인 스타일과 CSS 클래스
+ */
+export function getDynamicTextStyleWithLinks(
+  text: string,
+  config: Partial<TextSizeConfig> = {}
+) {
+  // 실제 표시될 텍스트 길이를 계산
+  const displayLength = getDisplayTextLength(text);
+  
+  // 표시 길이를 기준으로 폰트 크기 계산
+  const finalConfig = { ...DEFAULT_CONFIG, ...config };
+  
+  if (!text || text.trim().length === 0) {
+    const fontSize = finalConfig.maxFontSize;
+    return {
+      fontSize: `${fontSize}px`,
+      cssClass: getFontSizeClass(fontSize),
+      lineHeight: fontSize <= 12 ? "1.3" : "1.4",
+    };
+  }
+
+  // 표시 길이 기준으로 폰트 크기 계산
+  let fontSize = finalConfig.maxFontSize;
+  
+  if (displayLength <= finalConfig.shortTextThreshold) {
+    fontSize = finalConfig.maxFontSize;
+  } else if (displayLength >= finalConfig.longTextThreshold) {
+    fontSize = finalConfig.minFontSize;
+  } else {
+    const ratio = (displayLength - finalConfig.shortTextThreshold) / 
+                  (finalConfig.longTextThreshold - finalConfig.shortTextThreshold);
+    fontSize = finalConfig.maxFontSize - 
+               (ratio * (finalConfig.maxFontSize - finalConfig.minFontSize));
+  }
+
+  fontSize = Math.round(fontSize);
   const cssClass = getFontSizeClass(fontSize);
 
   return {

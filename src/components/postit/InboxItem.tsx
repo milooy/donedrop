@@ -9,7 +9,7 @@ import {
   SHADOW_STYLES 
 } from "@/lib/constants";
 import { getInboxPostItRotation } from "@/lib/utils/rotation";
-import { getDynamicTextStyle } from "@/lib/utils/text-sizing";
+import { getDynamicTextStyleWithLinks } from "@/lib/utils/text-sizing";
 
 interface InboxItemProps {
   todo: Todo;
@@ -26,8 +26,8 @@ export const InboxItem = memo<InboxItemProps>(({
 }) => {
   const rotation = getInboxPostItRotation(todo.id);
   
-  // 텍스트 길이에 따른 동적 스타일 계산
-  const textStyle = useMemo(() => getDynamicTextStyle(todo.text), [todo.text]);
+  // 텍스트 길이에 따른 동적 스타일 계산 (링크 고려)
+  const textStyle = useMemo(() => getDynamicTextStyleWithLinks(todo.text), [todo.text]);
 
   const stopPropagation = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
