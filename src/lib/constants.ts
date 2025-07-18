@@ -1,4 +1,4 @@
-import { type PostItColor } from "@/hooks/useSupabaseData";
+import { type PostItColor } from "@/lib/types";
 
 // 색상 관련 상수
 export const POST_IT_COLORS: PostItColor[] = ["yellow", "pink", "blue"];

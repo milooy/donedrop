@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { type Todo } from "@/hooks/useSupabaseData";
+import { type Todo } from "@/lib/types";
 import {
   Tooltip,
   TooltipContent,

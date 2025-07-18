@@ -1,5 +1,5 @@
 import { memo, useState, useCallback } from "react";
-import { type Ritual } from "@/hooks/useSupabaseData";
+import { type Ritual } from "@/lib/types";
 import { SHADOW_STYLES } from "@/lib/constants";
 
 interface RitualWidgetProps {

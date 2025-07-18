@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { useAuthState } from "@/hooks/useAuthState";
 import LoginScreen from "@/components/LoginScreen";
 
 export default function Home() {
-  // Supabase 데이터 훅
-  const { user, loading, signInWithGoogle, signInWithGitHub } =
-    useSupabaseData();
+  // Auth state 훅
+  const { user, loading, signInWithGoogle, signInWithGitHub } = useAuthState();
 
   // 인증된 사용자는 앱 페이지로 리다이렉트
   useEffect(() => {

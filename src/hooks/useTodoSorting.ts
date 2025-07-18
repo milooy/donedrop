@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { type Todo } from "@/hooks/useSupabaseData";
+import { type Todo } from "@/lib/types";
 
 /**
  * 할일 정렬 로직을 위한 커스텀 훅

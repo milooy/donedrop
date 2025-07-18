@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { type PostItColor } from "@/hooks/useSupabaseData";
+import { type PostItColor } from "@/lib/types";
 import { POST_IT_COLORS, COLOR_STYLES } from "@/lib/constants";
 
 interface ColorPaletteProps {

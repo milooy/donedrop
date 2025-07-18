@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { type Todo } from "@/hooks/useSupabaseData";
+import { type Todo } from "@/lib/types";
 
 interface DraggablePostItProps {
   todo: Todo;

@@ -1,5 +1,5 @@
 import { memo, useState, useCallback, useMemo } from "react";
-import { type PostItColor } from "@/hooks/useSupabaseData";
+import { type PostItColor } from "@/lib/types";
 import { ColorPalette } from "@/components/ui/ColorPalette";
 import { 
   COLOR_STYLES, 

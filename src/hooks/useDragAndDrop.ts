@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { DragStartEvent, DragEndEvent } from "@dnd-kit/core";
-import { type Todo } from "@/hooks/useSupabaseData";
+import { type Todo } from "@/lib/types";
 
 interface UseDragAndDropProps {
   completeTodo: (todo: Todo, fromInbox?: boolean) => Promise<void>;

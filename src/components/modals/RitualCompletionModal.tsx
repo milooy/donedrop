@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { type Ritual } from "@/hooks/useSupabaseData";
+import { type Ritual } from "@/lib/types";
 
 interface RitualCompletionModalProps {
   isOpen: boolean;

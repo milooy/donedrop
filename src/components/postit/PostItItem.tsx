@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo } from "react";
-import { type Todo } from "@/hooks/useSupabaseData";
+import { type Todo } from "@/lib/types";
 import { DraggablePostIt } from "@/components/dnd/DraggablePostIt";
 import { EditableText } from "@/components/ui/EditableText";
 import { 

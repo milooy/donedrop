@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import { type Todo, type Gem } from "@/hooks/useSupabaseData";
+import { type Todo, type Gem } from "@/lib/types";
 import { DroppableArea } from "@/components/dnd/DroppableArea";
 import { JarTooltipItem } from "./JarTooltipItem";
 import {

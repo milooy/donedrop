@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { type Todo } from "@/hooks/useSupabaseData";
+import { type Todo } from "@/lib/types";
 import { COLOR_STYLES, GRAY_COLOR_STYLES } from "@/lib/constants";
 import { isToday } from "@/lib/utils/date";
 

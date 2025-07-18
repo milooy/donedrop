@@ -1,4 +1,4 @@
-import { type RitualGem } from "@/hooks/useSupabaseData";
+import { type RitualGem } from "@/lib/types";
 
 /**
  * 오늘 날짜를 YYYY-MM-DD 형식으로 반환 (로컬 시간대 기준)

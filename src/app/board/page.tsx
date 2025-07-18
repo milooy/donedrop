@@ -5,12 +5,52 @@ import { DndContext, closestCenter } from "@dnd-kit/core";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Hooks
-import { useSupabaseData } from "@/hooks/useSupabaseData";
+import { useAuthState } from "@/hooks/useAuthState";
+import { useRitualModal } from "@/hooks/useRitualModal";
+import { useRitualLogic } from "@/hooks/useRitualLogic";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import { useTodoSorting } from "@/hooks/useTodoSorting";
 import { useClientOnly } from "@/hooks/useClientOnly";
 import { useCoinReward } from "@/hooks/useCoinReward";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+
+// Query hooks
+import {
+  useTodos,
+  useInboxTodos,
+  useCompletedTodos,
+  useAddTodo,
+  useAddInboxTodo,
+  useUpdateTodo,
+  useUpdateInboxTodo,
+  useDeleteTodo,
+  useDeleteInboxTodo,
+  useCompleteTodo,
+  useMoveToInbox,
+  useMoveToMain,
+  useArchiveCompletedTodos,
+} from "@/hooks/queries/useTodos";
+
+import {
+  useRituals,
+  useRitualCompleteLogs,
+  useRitualGems,
+  useAddRitual,
+  useUpdateRitual,
+  useDeleteRitual,
+} from "@/hooks/queries/useRituals";
+
+import {
+  useUserSettings,
+  useUpdateUserSettings,
+} from "@/hooks/queries/useUserSettings";
+
+import {
+  useStreakData,
+} from "@/hooks/queries/useStreakData";
+
+// Types
+import type { Todo, PostItColor } from "@/lib/types";
 
 // Components
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
@@ -34,58 +74,169 @@ import {
 } from "@/lib/styles/backgrounds";
 
 export default function BoardPage() {
-  // Data hooks
-  const supabaseData = useSupabaseData();
-  const {
-    user,
-    loading,
-    signOut,
-    todos,
-    inboxTodos,
-    completedTodos,
-    selectedColor,
-    inboxSelectedColor,
-    coins,
-    addTodo,
-    addInboxTodo,
-    editTodoText,
-    editInboxTodoText,
-    togglePin,
-    toggleInboxPin,
-    removeTodo,
-    removeInboxTodo,
-    completeTodo,
-    moveToInbox,
-    moveToMain,
-    rewardCoins,
-    updateSelectedColor,
-    updateInboxSelectedColor,
-
-    // Ritual data
-    rituals,
-    todayCompletedRitualIds,
-    currentStreak,
-    bestStreak,
-
-    // Ritual actions
-    addRitual,
-    editRitual,
-    removeRitual,
-    toggleRitual,
-    claimRitualReward,
-
-    // Ritual modal
-    showRitualCompletionModal,
-    setShowRitualCompletionModal,
-    completedRitualsForModal,
-
-    // Gems
-    gems,
-  } = supabaseData;
+  // Auth state
+  const { user, loading, signOut } = useAuthState();
+  
+  // Query hooks
+  const todosQuery = useTodos(user);
+  const inboxTodosQuery = useInboxTodos(user);
+  const completedTodosQuery = useCompletedTodos(user);
+  const ritualsQuery = useRituals(user);
+  const ritualCompleteLogsQuery = useRitualCompleteLogs(user);
+  const ritualGemsQuery = useRitualGems(user);
+  const userSettingsQuery = useUserSettings(user);
+  const streakDataQuery = useStreakData(user);
+  
+  // Mutation hooks
+  const addTodoMutation = useAddTodo(user);
+  const addInboxTodoMutation = useAddInboxTodo(user);
+  const updateTodoMutation = useUpdateTodo(user);
+  const updateInboxTodoMutation = useUpdateInboxTodo(user);
+  const deleteTodoMutation = useDeleteTodo(user);
+  const deleteInboxTodoMutation = useDeleteInboxTodo(user);
+  const completeTodoMutation = useCompleteTodo(user);
+  const moveToInboxMutation = useMoveToInbox(user);
+  const moveToMainMutation = useMoveToMain(user);
+  const archiveCompletedTodosMutation = useArchiveCompletedTodos(user);
+  
+  const addRitualMutation = useAddRitual(user);
+  const updateRitualMutation = useUpdateRitual(user);
+  const deleteRitualMutation = useDeleteRitual(user);
+  
+  const updateUserSettingsMutation = useUpdateUserSettings(user);
+  
+  // Extract data
+  const todos = todosQuery.data || [];
+  const inboxTodos = inboxTodosQuery.data || [];
+  const completedTodos = completedTodosQuery.data || [];
+  const rituals = ritualsQuery.data || [];
+  const ritualCompleteLogs = ritualCompleteLogsQuery.data || [];
+  const gems = ritualGemsQuery.data || [];
+  const userSettings = userSettingsQuery.data;
+  const streakData = streakDataQuery.data;
+  
+  // Computed values
+  const selectedColor = userSettings?.selected_color || 'yellow';
+  const inboxSelectedColor = userSettings?.inbox_selected_color || 'yellow';
+  const coins = userSettings?.coins || 0;
+  const currentStreak = streakData?.currentStreak || 0;
+  const bestStreak = streakData?.bestStreak || 0;
+  
+  // Ritual modal
+  const { showRitualCompletionModal, setShowRitualCompletionModal, completedRitualsForModal, showModal } = useRitualModal();
+  
+  // Ritual logic
+  const { toggleRitual, todayCompletedRitualIds } = useRitualLogic(user, rituals, ritualCompleteLogs, showModal);
+  
+  // Loading state
+  const isDataLoading = loading || 
+    (user && (
+      todosQuery.isLoading || 
+      inboxTodosQuery.isLoading || 
+      completedTodosQuery.isLoading || 
+      ritualsQuery.isLoading || 
+      ritualCompleteLogsQuery.isLoading || 
+      ritualGemsQuery.isLoading || 
+      userSettingsQuery.isLoading || 
+      streakDataQuery.isLoading
+    ));
+  
+  // Action functions
+  const addTodo = async (text: string, color: PostItColor) => {
+    await addTodoMutation.mutateAsync({ text, color });
+  };
+  
+  const addInboxTodo = async (text: string, color: PostItColor) => {
+    await addInboxTodoMutation.mutateAsync({ text, color });
+  };
+  
+  const editTodoText = async (todoId: number, newText: string) => {
+    await updateTodoMutation.mutateAsync({ todoId, updates: { text: newText } });
+  };
+  
+  const editInboxTodoText = async (todoId: number, newText: string) => {
+    await updateInboxTodoMutation.mutateAsync({ todoId, updates: { text: newText } });
+  };
+  
+  const togglePin = async (todoId: number) => {
+    const todo = todos.find(t => t.id === todoId);
+    if (!todo) return;
+    
+    const updates = {
+      isPinned: !todo.isPinned,
+      pinnedAt: !todo.isPinned ? Date.now() : undefined,
+    };
+    
+    await updateTodoMutation.mutateAsync({ todoId, updates });
+  };
+  
+  const toggleInboxPin = async (todoId: number) => {
+    const todo = inboxTodos.find(t => t.id === todoId);
+    if (!todo) return;
+    
+    const updates = {
+      isPinned: !todo.isPinned,
+      pinnedAt: !todo.isPinned ? Date.now() : undefined,
+    };
+    
+    await updateInboxTodoMutation.mutateAsync({ todoId, updates });
+  };
+  
+  const removeTodo = async (todoId: number) => {
+    await deleteTodoMutation.mutateAsync(todoId);
+  };
+  
+  const removeInboxTodo = async (todoId: number) => {
+    await deleteInboxTodoMutation.mutateAsync(todoId);
+  };
+  
+  const completeTodo = async (todo: Todo) => {
+    await completeTodoMutation.mutateAsync(todo.id);
+  };
+  
+  const moveToInbox = async (todo: Todo) => {
+    await moveToInboxMutation.mutateAsync(todo.id);
+  };
+  
+  const moveToMain = async (todo: Todo) => {
+    await moveToMainMutation.mutateAsync(todo.id);
+  };
+  
+  const rewardCoins = async (amount: number) => {
+    const totalGemsValue = gems.length * 5;
+    const newCoins = coins + amount + totalGemsValue;
+    
+    await updateUserSettingsMutation.mutateAsync({ coins: newCoins });
+    await archiveCompletedTodosMutation.mutateAsync();
+  };
+  
+  const updateSelectedColor = async (color: PostItColor) => {
+    await updateUserSettingsMutation.mutateAsync({ selected_color: color });
+  };
+  
+  const updateInboxSelectedColor = async (color: PostItColor) => {
+    await updateUserSettingsMutation.mutateAsync({ inbox_selected_color: color });
+  };
+  
+  const addRitual = async (name: string) => {
+    await addRitualMutation.mutateAsync({ name, orderIndex: rituals.length });
+  };
+  
+  const editRitual = async (ritualId: number, newName: string) => {
+    await updateRitualMutation.mutateAsync({ ritualId, updates: { name: newName } });
+  };
+  
+  const removeRitual = async (ritualId: number) => {
+    await deleteRitualMutation.mutateAsync(ritualId);
+  };
+  
+  const claimRitualReward = () => {
+    setShowRitualCompletionModal(false);
+  };
 
   // Custom hooks
   const { isClient, todayString } = useClientOnly();
-  const { isAuthenticated, isLoading } = useAuthGuard(user, loading);
+  const { isAuthenticated, isLoading } = useAuthGuard(user, isDataLoading);
   const sortedTodos = useTodoSorting(todos);
   const sortedInboxTodos = useTodoSorting(inboxTodos);
 

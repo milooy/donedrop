@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { DragOverlay } from "@dnd-kit/core";
-import { type Todo } from "@/hooks/useSupabaseData";
+import { type Todo } from "@/lib/types";
 import { COLOR_STYLES } from "@/lib/constants";
 
 interface DragOverlayContentProps {
