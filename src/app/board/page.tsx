@@ -73,12 +73,12 @@ export default function BoardPage() {
     removeRitual,
     toggleRitual,
     claimRitualReward,
-    
+
     // Ritual modal
     showRitualCompletionModal,
     setShowRitualCompletionModal,
     completedRitualsForModal,
-    
+
     // Gems
     gems,
   } = supabaseData;
@@ -133,7 +133,6 @@ export default function BoardPage() {
       inset 0 4px 8px rgba(120, 53, 15, 0.3),
       0 -4px 16px rgba(0, 0, 0, 0.2)
     `,
-    paddingRight: 320,
   };
 
   return (
@@ -190,7 +189,7 @@ export default function BoardPage() {
           </div>
 
           {/* 유리병 */}
-          <div className="absolute bottom-10 right-10 p-6 z-20">
+          <div className="absolute bottom-20 right-10 p-6 z-20">
             <GlassJar
               completedTodos={completedTodos}
               gems={gems}
@@ -206,7 +205,7 @@ export default function BoardPage() {
             <DroppableArea id="inbox" className="h-full">
               <div
                 className="flex gap-4 overflow-x-auto pb-4"
-                style={{ overflowClipMargin: "unset" }}
+                style={{ overflowClipMargin: "unset", paddingRight: "320px" }}
               >
                 <PostItInput
                   selectedColor={inboxSelectedColor}

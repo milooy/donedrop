@@ -66,7 +66,7 @@ export const GlassJar = memo<GlassJarProps>(
     };
     return (
       <div className="flex items-end justify-center">
-        <DroppableArea id="glass-jar" className="w-60 h-80">
+        <DroppableArea id="glass-jar" className="w-45 h-65">
           <div
             className="w-full h-full relative cursor-pointer transition-all duration-300"
             style={jarStyle}
