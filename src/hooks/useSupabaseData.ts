@@ -24,7 +24,7 @@ import {
   deleteRitualCompleteLog,
   archiveRitualGems,
   upsertUserSettings,
-} from "@/lib/database";
+} from "@/lib/remotes/supabase";
 import { supabase } from "@/lib/supabase";
 import {
   getTodayString,
@@ -33,49 +33,26 @@ import {
 } from "@/lib/utils/streak";
 import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
+import type { 
+  Todo, 
+  Ritual, 
+  RitualCompleteLog, 
+  RitualGem, 
+  PostItColor, 
+  TodoStatus,
+  Gem 
+} from "@/lib/types";
 
-export type PostItColor = "yellow" | "pink" | "blue";
-export type TodoStatus = "inbox" | "active" | "completed" | "archived";
-
-export interface Todo {
-  id: number;
-  text: string;
-  color: PostItColor;
-  status: TodoStatus;
-  isPinned: boolean;
-  pinnedAt?: number;
-  createdAt: number;
-  completedAt?: number;
-  archivedAt?: number;
-}
-
-export interface Ritual {
-  id: number;
-  name: string;
-  orderIndex: number;
-  isActive: boolean;
-  createdAt: number;
-}
-
-export interface RitualCompleteLog {
-  id: number;
-  userId: string;
-  ritualId: number;
-  completedAt: number;
-  createdAt: number;
-}
-
-export interface RitualGem {
-  id: number;
-  userId: string;
-  date: string; // YYYY-MM-DD format
-  createdAt: number;
-  isArchived: boolean;
-  archivedAt?: number;
-}
-
-// Gem interface는 RitualGem으로 대체
-export type Gem = RitualGem;
+// Re-export types for backward compatibility
+export type { 
+  Todo, 
+  Ritual, 
+  RitualCompleteLog, 
+  RitualGem, 
+  PostItColor, 
+  TodoStatus,
+  Gem 
+};
 
 export const useSupabaseData = () => {
   const [user, setUser] = useState<User | null>(null);
