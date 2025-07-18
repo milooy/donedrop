@@ -5,6 +5,7 @@ import {
   convertRitualToDB,
   convertRitualCompleteLogFromDB,
   convertRitualGemFromDB,
+  convertRitualCompletionFromDB,
 } from '../converters';
 
 // Ritual CRUD
@@ -181,6 +182,54 @@ export const insertRitualGem = async (date: string, userId: string) => {
 export const archiveRitualGems = async (userId: string) => {
   const { error } = await supabase
     .from("ritual_gems")
+    .update({
+      is_archived: true,
+      archived_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId)
+    .eq("is_archived", false);
+
+  if (error) throw error;
+};
+
+// RitualCompletion CRUD
+export const fetchRitualCompletions = async (userId: string) => {
+  const { data, error } = await supabase
+    .from("ritual_completions")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("is_archived", false)
+    .order("date", { ascending: false });
+
+  if (error) throw error;
+  return data?.map(convertRitualCompletionFromDB) || [];
+};
+
+export const upsertRitualCompletion = async (
+  userId: string,
+  date: string,
+  completedRitualIds: number[]
+) => {
+  const { data, error } = await supabase
+    .from("ritual_completions")
+    .upsert({
+      user_id: userId,
+      date: date,
+      completed_ritual_ids: completedRitualIds,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_archived: false,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return convertRitualCompletionFromDB(data);
+};
+
+export const archiveRitualCompletions = async (userId: string) => {
+  const { error } = await supabase
+    .from("ritual_completions")
     .update({
       is_archived: true,
       archived_at: new Date().toISOString(),

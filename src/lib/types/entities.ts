@@ -38,6 +38,17 @@ export interface RitualGem {
   archivedAt?: number;
 }
 
+export interface RitualCompletion {
+  id: number;
+  userId: string;
+  date: string; // YYYY-MM-DD format
+  completedRitualIds: number[];
+  createdAt: number;
+  updatedAt: number;
+  isArchived: boolean;
+  archivedAt?: number;
+}
+
 export interface UserSettings {
   user_id: string;
   selected_color: PostItColor;

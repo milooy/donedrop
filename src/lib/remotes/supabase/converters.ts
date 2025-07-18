@@ -3,10 +3,12 @@ import type {
   Ritual, 
   RitualCompleteLog, 
   RitualGem,
+  RitualCompletion,
   TodoDatabase,
   RitualDatabase,
   RitualCompleteLogDatabase,
-  RitualGemDatabase
+  RitualGemDatabase,
+  RitualCompletionDatabase
 } from '@/lib/types';
 
 // Todo conversion functions
@@ -105,4 +107,31 @@ export const convertRitualGemToDB = (
   created_at: new Date(gem.createdAt).toISOString(),
   is_archived: gem.isArchived,
   archived_at: gem.archivedAt ? new Date(gem.archivedAt).toISOString() : undefined,
+});
+
+// RitualCompletion conversion functions
+export const convertRitualCompletionFromDB = (
+  dbCompletion: RitualCompletionDatabase
+): RitualCompletion => ({
+  id: dbCompletion.id,
+  userId: dbCompletion.user_id,
+  date: dbCompletion.date,
+  completedRitualIds: dbCompletion.completed_ritual_ids,
+  createdAt: new Date(dbCompletion.created_at).getTime(),
+  updatedAt: new Date(dbCompletion.updated_at).getTime(),
+  isArchived: dbCompletion.is_archived || false,
+  archivedAt: dbCompletion.archived_at ? new Date(dbCompletion.archived_at).getTime() : undefined,
+});
+
+export const convertRitualCompletionToDB = (
+  completion: RitualCompletion,
+  userId: string
+): Partial<RitualCompletionDatabase> => ({
+  user_id: userId,
+  date: completion.date,
+  completed_ritual_ids: completion.completedRitualIds,
+  created_at: new Date(completion.createdAt).toISOString(),
+  updated_at: new Date(completion.updatedAt).toISOString(),
+  is_archived: completion.isArchived,
+  archived_at: completion.archivedAt ? new Date(completion.archivedAt).toISOString() : undefined,
 });

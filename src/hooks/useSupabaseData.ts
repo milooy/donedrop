@@ -24,12 +24,13 @@ import {
   deleteRitualCompleteLog,
   archiveRitualGems,
   upsertUserSettings,
+  fetchRitualCompletions,
+  upsertRitualCompletion,
+  archiveRitualCompletions,
 } from "@/lib/remotes/supabase";
 import { supabase } from "@/lib/supabase";
 import {
   getTodayString,
-  calculateCurrentStreak,
-  calculateBestStreak,
 } from "@/lib/utils/streak";
 import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
@@ -38,6 +39,7 @@ import type {
   Ritual, 
   RitualCompleteLog, 
   RitualGem, 
+  RitualCompletion,
   PostItColor, 
   TodoStatus,
   Gem 
@@ -49,6 +51,7 @@ export type {
   Ritual, 
   RitualCompleteLog, 
   RitualGem, 
+  RitualCompletion,
   PostItColor, 
   TodoStatus,
   Gem 
@@ -71,6 +74,7 @@ export const useSupabaseData = () => {
   const [rituals, setRituals] = useState<Ritual[]>([]);
   const [ritualCompleteLogs, setRitualCompleteLogs] = useState<RitualCompleteLog[]>([]);
   const [ritualGems, setRitualGems] = useState<RitualGem[]>([]);
+  const [ritualCompletions, setRitualCompletions] = useState<RitualCompletion[]>([]);
   const [showRitualCompletionModal, setShowRitualCompletionModal] =
     useState(false);
   const [completedRitualsForModal, setCompletedRitualsForModal] = useState<
@@ -79,6 +83,10 @@ export const useSupabaseData = () => {
 
   // Gem states
   const [gems, setGems] = useState<Gem[]>([]);
+  
+  // Streak states (서버에서 가져옴)
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
 
 
   // 날짜를 YYYY-MM-DD 형식으로 변환하는 공통 함수
@@ -142,6 +150,9 @@ export const useSupabaseData = () => {
         setRituals([]);
         setRitualCompleteLogs([]);
         setRitualGems([]);
+        setRitualCompletions([]);
+        setCurrentStreak(0);
+        setBestStreak(0);
       }
     });
 
@@ -170,6 +181,7 @@ export const useSupabaseData = () => {
         ritualsData,
         ritualCompleteLogsData,
         ritualGemsData,
+        ritualCompletionsData,
       ] = await Promise.all([
         fetchActiveTodos(user.id),
         fetchInboxTodos(user.id),
@@ -178,6 +190,7 @@ export const useSupabaseData = () => {
         fetchRituals(user.id),
         fetchRitualCompleteLogs(user.id),
         fetchRitualGems(user.id),
+        fetchRitualCompletions(user.id),
       ]);
 
       setTodos(todosData);
@@ -186,16 +199,36 @@ export const useSupabaseData = () => {
       setRituals(ritualsData);
       setRitualCompleteLogs(ritualCompleteLogsData);
       setRitualGems(ritualGemsData);
+      setRitualCompletions(ritualCompletionsData);
 
       if (settingsData) {
         setSelectedColor(settingsData.selected_color);
         setInboxSelectedColor(settingsData.inbox_selected_color);
         setCoins(settingsData.coins);
       }
+      
+      // 서버에서 streak 정보 가져오기
+      await loadStreakData();
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 서버에서 streak 정보 가져오기
+  const loadStreakData = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch(`/api/ritual-streak?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentStreak(data.currentStreak);
+        setBestStreak(data.bestStreak);
+      }
+    } catch (error) {
+      console.error("Error loading streak data:", error);
     }
   };
 
@@ -394,6 +427,7 @@ export const useSupabaseData = () => {
       await upsertUserSettings(user.id, { coins: newCoins });
       await archiveCompletedTodos(user.id);
       await archiveRitualGems(user.id); // ritual_gems 아카이브
+      await archiveRitualCompletions(user.id); // ritual_completions 아카이브
 
       setCoins(newCoins);
       setCompletedTodos([]);
@@ -401,6 +435,13 @@ export const useSupabaseData = () => {
       // 아카이브된 보석들을 제거하기 위해 다시 로드
       const updatedGems = await fetchRitualGems(user.id);
       setRitualGems(updatedGems);
+      
+      // 아카이브된 ritual_completions 제거하기 위해 다시 로드
+      const updatedCompletions = await fetchRitualCompletions(user.id);
+      setRitualCompletions(updatedCompletions);
+      
+      // 서버에서 새로운 streak 정보 가져오기 (아카이브 후 초기화됨)
+      await loadStreakData();
     } catch (error) {
       console.error("Error rewarding coins:", error);
     }
@@ -566,6 +607,19 @@ export const useSupabaseData = () => {
             // 보석 생성
             const newGem = await insertRitualGem(today, user.id);
             setRitualGems(prev => [...prev, newGem]);
+            
+            // ritual_completions 테이블에 완료 기록 추가
+            const completion = await upsertRitualCompletion(user.id, today, activeRitualIds);
+            setRitualCompletions(prev => {
+              const existing = prev.find(c => c.date === today);
+              if (existing) {
+                return prev.map(c => c.date === today ? completion : c);
+              }
+              return [completion, ...prev];
+            });
+            
+            // 서버에서 새로운 streak 정보 가져오기
+            await loadStreakData();
           }
         }
       }
@@ -589,10 +643,6 @@ export const useSupabaseData = () => {
   // Ritual computed values
   const today = getTodayString();
   const todayCompletedRitualIds = getTodayCompletedRitualIds(ritualCompleteLogs, today);
-  
-  // RitualGem 기반 스트릭 계산
-  const currentStreak = calculateCurrentStreak(ritualGems);
-  const bestStreak = calculateBestStreak(ritualGems);
 
 
   return {
@@ -615,6 +665,7 @@ export const useSupabaseData = () => {
     rituals,
     ritualCompleteLogs,
     ritualGems,
+    ritualCompletions,
     todayCompletedRitualIds,
     currentStreak,
     bestStreak,
