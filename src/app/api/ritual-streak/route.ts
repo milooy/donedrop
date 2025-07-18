@@ -1,26 +1,37 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+// 서버 사이드 API용 서비스 키 사용
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const userId = searchParams.get("userId");
 
     if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
     }
 
     // ritual_completions 테이블에서 해당 유저의 완료 기록을 가져옴
     const { data: completions, error } = await supabase
-      .from('ritual_completions')
-      .select('date')
-      .eq('user_id', userId)
-      .eq('is_archived', false)
-      .order('date', { ascending: false });
+      .from("ritual_completions")
+      .select("date")
+      .eq("user_id", userId)
+      .order("date", { ascending: false });
 
     if (error) {
-      console.error('Error fetching ritual completions:', error);
-      return NextResponse.json({ error: 'Failed to fetch ritual completions' }, { status: 500 });
+      console.error("Error fetching ritual completions:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch ritual completions" },
+        { status: 500 }
+      );
     }
 
     // 현재 스트릭 계산
@@ -28,13 +39,22 @@ export async function GET(request: NextRequest) {
     // 최고 스트릭 계산
     const bestStreak = calculateBestStreak(completions || []);
 
+    console.log("Calculated streaks:", {
+      currentStreak,
+      bestStreak,
+      dataCount: completions?.length || 0,
+    });
+
     return NextResponse.json({
       currentStreak,
       bestStreak,
     });
   } catch (error) {
-    console.error('Error in ritual streak API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error in ritual streak API:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -48,7 +68,9 @@ function calculateCurrentStreak(completions: { date: string }[]): number {
   let currentDate = getTodayString();
 
   // 완료 날짜들을 Set에 저장 (빠른 검색을 위해)
-  const completionDates = new Set(completions.map(completion => completion.date));
+  const completionDates = new Set(
+    completions.map((completion) => completion.date)
+  );
 
   // 오늘부터 역순으로 확인
   while (true) {
@@ -57,12 +79,12 @@ function calculateCurrentStreak(completions: { date: string }[]): number {
       // 다음 날짜로 이동 (하루 전)
       const nextDate = new Date(currentDate);
       nextDate.setDate(nextDate.getDate() - 1);
-      currentDate = nextDate.toISOString().split('T')[0];
+      currentDate = nextDate.toISOString().split("T")[0];
     } else {
       // 완료 기록이 없으면 스트릭 중단
       break;
     }
-    
+
     // 너무 오래된 날짜까지는 확인하지 않음 (365일 제한)
     if (streak >= 365) break;
   }
@@ -78,7 +100,7 @@ function calculateBestStreak(completions: { date: string }[]): number {
 
   // 날짜별로 정렬
   const sortedDates = completions
-    .map(completion => completion.date)
+    .map((completion) => completion.date)
     .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
   let bestStreak = 0;
@@ -107,8 +129,8 @@ function calculateBestStreak(completions: { date: string }[]): number {
 function getTodayString(): string {
   const today = new Date();
   const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 

@@ -9,156 +9,99 @@ export interface Database {
       todos: {
         Row: {
           id: number;
-          user_id: string;
+          user_id: string | null;
           text: string;
           color: "yellow" | "pink" | "blue";
-          status: TodoStatus;
-          is_pinned: boolean;
+          status: TodoStatus | null;
+          is_pinned: boolean | null;
           pinned_at: string | null;
           completed_at: string | null;
           archived_at: string | null;
-          created_at: string;
-          updated_at: string;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Insert: {
           id?: number;
-          user_id: string;
+          user_id?: string | null;
           text: string;
           color: "yellow" | "pink" | "blue";
-          status?: TodoStatus;
-          is_pinned?: boolean;
+          status?: TodoStatus | null;
+          is_pinned?: boolean | null;
           pinned_at?: string | null;
           completed_at?: string | null;
           archived_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Update: {
           id?: number;
-          user_id?: string;
+          user_id?: string | null;
           text?: string;
           color?: "yellow" | "pink" | "blue";
-          status?: TodoStatus;
-          is_pinned?: boolean;
+          status?: TodoStatus | null;
+          is_pinned?: boolean | null;
           pinned_at?: string | null;
           completed_at?: string | null;
           archived_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      inbox_todos: {
-        Row: {
-          id: number;
-          user_id: string;
-          text: string;
-          color: "yellow" | "pink" | "blue";
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: number;
-          user_id: string;
-          text: string;
-          color: "yellow" | "pink" | "blue";
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: number;
-          user_id?: string;
-          text?: string;
-          color?: "yellow" | "pink" | "blue";
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      completed_todos: {
-        Row: {
-          id: number;
-          user_id: string;
-          text: string;
-          color: "yellow" | "pink" | "blue";
-          completed_at: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: number;
-          user_id: string;
-          text: string;
-          color: "yellow" | "pink" | "blue";
-          completed_at?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: number;
-          user_id?: string;
-          text?: string;
-          color?: "yellow" | "pink" | "blue";
-          completed_at?: string;
-          created_at?: string;
-          updated_at?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Relationships: [];
       };
       user_settings: {
         Row: {
           user_id: string;
-          selected_color: "yellow" | "pink" | "blue";
-          inbox_selected_color: "yellow" | "pink" | "blue";
-          coins: number;
-          created_at: string;
-          updated_at: string;
+          selected_color: "yellow" | "pink" | "blue" | null;
+          inbox_selected_color: "yellow" | "pink" | "blue" | null;
+          coins: number | null;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Insert: {
           user_id: string;
-          selected_color: "yellow" | "pink" | "blue";
-          inbox_selected_color: "yellow" | "pink" | "blue";
-          coins?: number;
-          created_at?: string;
-          updated_at?: string;
+          selected_color?: "yellow" | "pink" | "blue" | null;
+          inbox_selected_color?: "yellow" | "pink" | "blue" | null;
+          coins?: number | null;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Update: {
           user_id?: string;
-          selected_color?: "yellow" | "pink" | "blue";
-          inbox_selected_color?: "yellow" | "pink" | "blue";
-          coins?: number;
-          created_at?: string;
-          updated_at?: string;
+          selected_color?: "yellow" | "pink" | "blue" | null;
+          inbox_selected_color?: "yellow" | "pink" | "blue" | null;
+          coins?: number | null;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Relationships: [];
       };
       rituals: {
         Row: {
           id: number;
-          user_id: string;
+          user_id: string | null;
           name: string;
           order_index: number;
-          is_active: boolean;
-          created_at: string;
-          updated_at: string;
+          is_active: boolean | null;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Insert: {
           id?: number;
-          user_id: string;
+          user_id?: string | null;
           name: string;
           order_index: number;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
+          is_active?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Update: {
           id?: number;
-          user_id?: string;
+          user_id?: string | null;
           name?: string;
           order_index?: number;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
+          is_active?: boolean | null;
+          created_at?: string | null;
+          updated_at?: string | null;
         };
         Relationships: [];
       };
@@ -223,32 +166,32 @@ export interface Database {
       ritual_completions: {
         Row: {
           id: number;
-          user_id: string;
+          user_id: string | null;
           date: string;
-          completed_ritual_ids: number[];
-          created_at: string;
-          updated_at: string;
-          is_archived: boolean;
+          completed_ritual_ids: string[];
+          created_at: string | null;
+          updated_at: string | null;
+          is_archived: boolean | null;
           archived_at: string | null;
         };
         Insert: {
           id?: number;
-          user_id: string;
+          user_id?: string | null;
           date: string;
-          completed_ritual_ids: number[];
-          created_at?: string;
-          updated_at?: string;
-          is_archived?: boolean;
+          completed_ritual_ids: string[];
+          created_at?: string | null;
+          updated_at?: string | null;
+          is_archived?: boolean | null;
           archived_at?: string | null;
         };
         Update: {
           id?: number;
-          user_id?: string;
+          user_id?: string | null;
           date?: string;
-          completed_ritual_ids?: number[];
-          created_at?: string;
-          updated_at?: string;
-          is_archived?: boolean;
+          completed_ritual_ids?: string[];
+          created_at?: string | null;
+          updated_at?: string | null;
+          is_archived?: boolean | null;
           archived_at?: string | null;
         };
         Relationships: [];
@@ -272,37 +215,37 @@ export interface Database {
 // Database-specific types (for conversion between DB and app types)
 export interface TodoDatabase {
   id: number;
-  user_id: string;
+  user_id: string | null;
   text: string;
   color: "yellow" | "pink" | "blue";
-  status: TodoStatus;
-  is_pinned: boolean;
+  status: TodoStatus | null;
+  is_pinned: boolean | null;
   pinned_at: string | null;
   completed_at: string | null;
   archived_at: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface RitualDatabase {
   id: number;
-  user_id: string;
+  user_id: string | null;
   name: string;
   order_index: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  is_active: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface RitualCompletionDatabase {
   id: number;
-  user_id: string;
+  user_id: string | null;
   date: string;
-  completed_ritual_ids: number[];
-  created_at: string;
-  updated_at: string;
-  is_archived?: boolean;
-  archived_at?: string;
+  completed_ritual_ids: string[];
+  created_at: string | null;
+  updated_at: string | null;
+  is_archived?: boolean | null;
+  archived_at?: string | null;
 }
 
 export interface RitualCompleteLogDatabase {
@@ -319,5 +262,5 @@ export interface RitualGemDatabase {
   date: string;
   created_at: string;
   is_archived: boolean;
-  archived_at?: string;
+  archived_at?: string | null;
 }
