@@ -130,7 +130,7 @@ export default function BoardPage() {
   
   // Loading state
   const isDataLoading = loading || 
-    (user && (
+    (user ? (
       todosQuery.isLoading || 
       inboxTodosQuery.isLoading || 
       completedTodosQuery.isLoading || 
@@ -139,7 +139,7 @@ export default function BoardPage() {
       ritualGemsQuery.isLoading || 
       userSettingsQuery.isLoading || 
       streakDataQuery.isLoading
-    ));
+    ) : false);
   
   // Action functions
   const addTodo = async (text: string, color: PostItColor) => {
