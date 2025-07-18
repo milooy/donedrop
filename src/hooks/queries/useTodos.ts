@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { User } from "@supabase/supabase-js";
+import { createQueryKeys } from "@lukemorales/query-key-factory";
 import {
   fetchActiveTodos,
   fetchInboxTodos,
@@ -17,9 +18,16 @@ import {
 } from "@/lib/remotes/supabase";
 import type { Todo, PostItColor, TodoStatus } from "@/lib/types";
 
+// Todos query keys
+const todosKeys = createQueryKeys("todos", {
+  list: (userId: string) => [userId],
+  inbox: (userId: string) => [userId],
+  completed: (userId: string) => [userId],
+});
+
 export const useTodos = (user: User | null) => {
   return useQuery({
-    queryKey: ["todos", user?.id],
+    queryKey: todosKeys.list(user?.id || '').queryKey,
     queryFn: () => fetchActiveTodos(user!.id),
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5분
@@ -28,7 +36,7 @@ export const useTodos = (user: User | null) => {
 
 export const useInboxTodos = (user: User | null) => {
   return useQuery({
-    queryKey: ["inboxTodos", user?.id],
+    queryKey: todosKeys.inbox(user?.id || '').queryKey,
     queryFn: () => fetchInboxTodos(user!.id),
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5분
@@ -37,7 +45,7 @@ export const useInboxTodos = (user: User | null) => {
 
 export const useCompletedTodos = (user: User | null) => {
   return useQuery({
-    queryKey: ["completedTodos", user?.id],
+    queryKey: todosKeys.completed(user?.id || '').queryKey,
     queryFn: () => fetchCompletedTodos(user!.id),
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5분
@@ -69,7 +77,7 @@ export const useAddTodo = (user: User | null) => {
       return insertTodo(newTodo, user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos", user?.id] });
+      queryClient.invalidateQueries({ queryKey: todosKeys.list._def });
     },
   });
 };
@@ -99,7 +107,7 @@ export const useAddInboxTodo = (user: User | null) => {
       return insertInboxTodo(newTodo, user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inboxTodos", user?.id] });
+      queryClient.invalidateQueries({ queryKey: todosKeys.inbox._def });
     },
   });
 };
@@ -119,7 +127,7 @@ export const useUpdateTodo = (user: User | null) => {
       return updateTodo(todoId, updates, user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos", user?.id] });
+      queryClient.invalidateQueries({ queryKey: todosKeys.list._def });
     },
   });
 };
@@ -139,7 +147,7 @@ export const useUpdateInboxTodo = (user: User | null) => {
       return updateInboxTodo(todoId, updates, user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inboxTodos", user?.id] });
+      queryClient.invalidateQueries({ queryKey: todosKeys.inbox._def });
     },
   });
 };
@@ -153,7 +161,7 @@ export const useDeleteTodo = (user: User | null) => {
       return deleteTodo(todoId, user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos", user?.id] });
+      queryClient.invalidateQueries({ queryKey: todosKeys.list._def });
     },
   });
 };
@@ -167,7 +175,7 @@ export const useDeleteInboxTodo = (user: User | null) => {
       return deleteInboxTodo(todoId, user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["inboxTodos", user?.id] });
+      queryClient.invalidateQueries({ queryKey: todosKeys.inbox._def });
     },
   });
 };
@@ -181,9 +189,9 @@ export const useCompleteTodo = (user: User | null) => {
       return moveTodoToCompleted(todoId, user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["inboxTodos", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["completedTodos", user?.id] });
+      queryClient.invalidateQueries({ queryKey: todosKeys.list._def });
+      queryClient.invalidateQueries({ queryKey: todosKeys.inbox._def });
+      queryClient.invalidateQueries({ queryKey: todosKeys.completed._def });
     },
   });
 };
@@ -197,8 +205,8 @@ export const useMoveToInbox = (user: User | null) => {
       return moveTodoToInbox(todoId, user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["inboxTodos", user?.id] });
+      queryClient.invalidateQueries({ queryKey: todosKeys.list._def });
+      queryClient.invalidateQueries({ queryKey: todosKeys.inbox._def });
     },
   });
 };
@@ -212,8 +220,8 @@ export const useMoveToMain = (user: User | null) => {
       return moveTodoToMain(todoId, user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos", user?.id] });
-      queryClient.invalidateQueries({ queryKey: ["inboxTodos", user?.id] });
+      queryClient.invalidateQueries({ queryKey: todosKeys.list._def });
+      queryClient.invalidateQueries({ queryKey: todosKeys.inbox._def });
     },
   });
 };
@@ -227,7 +235,7 @@ export const useArchiveCompletedTodos = (user: User | null) => {
       return archiveCompletedTodos(user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["completedTodos", user?.id] });
+      queryClient.invalidateQueries({ queryKey: todosKeys.completed._def });
     },
   });
 };

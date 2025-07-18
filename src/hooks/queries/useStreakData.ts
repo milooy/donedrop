@@ -1,9 +1,15 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { User } from "@supabase/supabase-js";
+import { createQueryKeys } from "@lukemorales/query-key-factory";
+
+// Streak data query keys
+const streakDataKeys = createQueryKeys("streakData", {
+  detail: (userId: string) => [userId],
+});
 
 export const useStreakData = (user: User | null) => {
   return useQuery({
-    queryKey: ["streakData", user?.id],
+    queryKey: streakDataKeys.detail(user?.id || '').queryKey,
     queryFn: async () => {
       if (!user) throw new Error("User not authenticated");
 
@@ -19,10 +25,10 @@ export const useStreakData = (user: User | null) => {
   });
 };
 
-export const useInvalidateStreakData = (user: User | null) => {
+export const useInvalidateStreakData = () => {
   const queryClient = useQueryClient();
 
   return () => {
-    queryClient.invalidateQueries({ queryKey: ["streakData", user?.id] });
+    queryClient.invalidateQueries({ queryKey: streakDataKeys.detail._def });
   };
 };

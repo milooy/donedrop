@@ -13,7 +13,7 @@ export const useRitualLogic = (
   const toggleRitualMutation = useToggleRitual(user);
   const insertRitualGemMutation = useInsertRitualGem(user);
   const upsertRitualCompletionMutation = useUpsertRitualCompletion(user);
-  const invalidateStreakData = useInvalidateStreakData(user);
+  const invalidateStreakData = useInvalidateStreakData();
 
   const formatDateString = (timestamp: number): string => {
     const date = new Date(timestamp);

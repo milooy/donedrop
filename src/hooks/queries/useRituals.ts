@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { User } from "@supabase/supabase-js";
+import { createQueryKeys } from "@lukemorales/query-key-factory";
 import {
   fetchRituals,
   fetchRitualCompleteLogs,
@@ -17,9 +18,17 @@ import {
 } from "@/lib/remotes/supabase";
 import type { Ritual } from "@/lib/types";
 
+// Rituals query keys
+const ritualsKeys = createQueryKeys("rituals", {
+  list: (userId: string) => [userId],
+  completeLogs: (userId: string) => [userId],
+  gems: (userId: string) => [userId],
+  completions: (userId: string) => [userId],
+});
+
 export const useRituals = (user: User | null) => {
   return useQuery({
-    queryKey: ["rituals", user?.id],
+    queryKey: ritualsKeys.list(user?.id || '').queryKey,
     queryFn: () => fetchRituals(user!.id),
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5분
@@ -28,7 +37,7 @@ export const useRituals = (user: User | null) => {
 
 export const useRitualCompleteLogs = (user: User | null) => {
   return useQuery({
-    queryKey: ["ritualCompleteLogs", user?.id],
+    queryKey: ritualsKeys.completeLogs(user?.id || '').queryKey,
     queryFn: () => fetchRitualCompleteLogs(user!.id),
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5분
@@ -37,7 +46,7 @@ export const useRitualCompleteLogs = (user: User | null) => {
 
 export const useRitualGems = (user: User | null) => {
   return useQuery({
-    queryKey: ["ritualGems", user?.id],
+    queryKey: ritualsKeys.gems(user?.id || '').queryKey,
     queryFn: () => fetchRitualGems(user!.id),
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5분
@@ -46,7 +55,7 @@ export const useRitualGems = (user: User | null) => {
 
 export const useRitualCompletions = (user: User | null) => {
   return useQuery({
-    queryKey: ["ritualCompletions", user?.id],
+    queryKey: ritualsKeys.completions(user?.id || '').queryKey,
     queryFn: () => fetchRitualCompletions(user!.id),
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5분
@@ -77,7 +86,7 @@ export const useAddRitual = (user: User | null) => {
       return insertRitual(newRitual, user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rituals", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ritualsKeys.list._def });
     },
   });
 };
@@ -97,7 +106,7 @@ export const useUpdateRitual = (user: User | null) => {
       return updateRitual(ritualId, updates, user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rituals", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ritualsKeys.list._def });
     },
   });
 };
@@ -111,7 +120,7 @@ export const useDeleteRitual = (user: User | null) => {
       return deleteRitual(ritualId, user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rituals", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ritualsKeys.list._def });
     },
   });
 };
@@ -137,7 +146,7 @@ export const useToggleRitual = (user: User | null) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["ritualCompleteLogs", user?.id],
+        queryKey: ritualsKeys.completeLogs._def,
       });
     },
   });
@@ -152,7 +161,7 @@ export const useInsertRitualGem = (user: User | null) => {
       return insertRitualGem(date, user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ritualGems", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ritualsKeys.gems._def });
     },
   });
 };
@@ -173,7 +182,7 @@ export const useUpsertRitualCompletion = (user: User | null) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["ritualCompletions", user?.id],
+        queryKey: ritualsKeys.completions._def,
       });
     },
   });
@@ -188,7 +197,7 @@ export const useArchiveRitualGems = (user: User | null) => {
       return archiveRitualGems(user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ritualGems", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ritualsKeys.gems._def });
     },
   });
 };
@@ -203,7 +212,7 @@ export const useArchiveRitualCompletions = (user: User | null) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["ritualCompletions", user?.id],
+        queryKey: ritualsKeys.completions._def,
       });
     },
   });

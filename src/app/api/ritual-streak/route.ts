@@ -39,12 +39,6 @@ export async function GET(request: NextRequest) {
     // 최고 스트릭 계산
     const bestStreak = calculateBestStreak(completions || []);
 
-    console.log("Calculated streaks:", {
-      currentStreak,
-      bestStreak,
-      dataCount: completions?.length || 0,
-    });
-
     return NextResponse.json({
       currentStreak,
       bestStreak,
