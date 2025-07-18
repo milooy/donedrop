@@ -1,15 +1,15 @@
-import type { 
-  Todo, 
-  Ritual, 
-  RitualCompleteLog, 
-  RitualGem,
-  RitualCompletion,
-  TodoDatabase,
-  RitualDatabase,
+import type {
+  Ritual,
+  RitualCompleteLog,
   RitualCompleteLogDatabase,
+  RitualCompletion,
+  RitualCompletionDatabase,
+  RitualDatabase,
+  RitualGem,
   RitualGemDatabase,
-  RitualCompletionDatabase
-} from '@/lib/types';
+  Todo,
+  TodoDatabase,
+} from "@/lib/types";
 
 // Todo conversion functions
 export const convertTodoFromDB = (dbTodo: TodoDatabase): Todo => ({
@@ -95,7 +95,9 @@ export const convertRitualGemFromDB = (
   date: dbGem.date,
   createdAt: new Date(dbGem.created_at).getTime(),
   isArchived: dbGem.is_archived,
-  archivedAt: dbGem.archived_at ? new Date(dbGem.archived_at).getTime() : undefined,
+  archivedAt: dbGem.archived_at
+    ? new Date(dbGem.archived_at).getTime()
+    : undefined,
 });
 
 export const convertRitualGemToDB = (
@@ -106,7 +108,9 @@ export const convertRitualGemToDB = (
   date: gem.date,
   created_at: new Date(gem.createdAt).toISOString(),
   is_archived: gem.isArchived,
-  archived_at: gem.archivedAt ? new Date(gem.archivedAt).toISOString() : undefined,
+  archived_at: gem.archivedAt
+    ? new Date(gem.archivedAt).toISOString()
+    : undefined,
 });
 
 // RitualCompletion conversion functions
@@ -120,7 +124,9 @@ export const convertRitualCompletionFromDB = (
   createdAt: new Date(dbCompletion.created_at).getTime(),
   updatedAt: new Date(dbCompletion.updated_at).getTime(),
   isArchived: dbCompletion.is_archived || false,
-  archivedAt: dbCompletion.archived_at ? new Date(dbCompletion.archived_at).getTime() : undefined,
+  archivedAt: dbCompletion.archived_at
+    ? new Date(dbCompletion.archived_at).getTime()
+    : undefined,
 });
 
 export const convertRitualCompletionToDB = (
@@ -133,5 +139,7 @@ export const convertRitualCompletionToDB = (
   created_at: new Date(completion.createdAt).toISOString(),
   updated_at: new Date(completion.updatedAt).toISOString(),
   is_archived: completion.isArchived,
-  archived_at: completion.archivedAt ? new Date(completion.archivedAt).toISOString() : undefined,
+  archived_at: completion.archivedAt
+    ? new Date(completion.archivedAt).toISOString()
+    : undefined,
 });

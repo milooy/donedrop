@@ -1,6 +1,12 @@
-import { TodoStatus } from './entities';
+import { TodoStatus } from "./entities";
 
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
 
 // Database schema types for Supabase
 export interface Database {
@@ -133,7 +139,7 @@ export interface Database {
             columns: ["ritual_id"];
             referencedRelation: "rituals";
             referencedColumns: ["id"];
-          },
+          }
         ];
       };
       ritual_gems: {
@@ -218,12 +224,12 @@ export interface TodoDatabase {
   user_id: string | null;
   text: string;
   color: "yellow" | "pink" | "blue";
-  status: TodoStatus | null;
-  is_pinned: boolean | null;
+  status: TodoStatus;
+  is_pinned: boolean;
   pinned_at: string | null;
   completed_at: string | null;
   archived_at: string | null;
-  created_at: string | null;
+  created_at: string;
   updated_at: string | null;
 }
 
@@ -232,18 +238,18 @@ export interface RitualDatabase {
   user_id: string | null;
   name: string;
   order_index: number;
-  is_active: boolean | null;
-  created_at: string | null;
+  is_active: boolean;
+  created_at: string;
   updated_at: string | null;
 }
 
 export interface RitualCompletionDatabase {
   id: number;
-  user_id: string | null;
+  user_id: string;
   date: string;
-  completed_ritual_ids: string[];
-  created_at: string | null;
-  updated_at: string | null;
+  completed_ritual_ids: number[];
+  created_at: string;
+  updated_at: string;
   is_archived?: boolean | null;
   archived_at?: string | null;
 }
