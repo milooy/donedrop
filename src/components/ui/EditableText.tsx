@@ -35,6 +35,9 @@ export const EditableText = memo<EditableTextProps>(
           e.stopPropagation();
           handleCancel();
         }
+        if (e.key === " ") {
+          e.stopPropagation();
+        }
       },
       [handleSave, handleCancel]
     );
