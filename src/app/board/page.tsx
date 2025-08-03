@@ -50,7 +50,7 @@ import {
 } from "@/hooks/queries/useStreakData";
 
 // Types
-import type { Todo, PostItColor } from "@/lib/types";
+import type { Todo, PostItColor, PostItType } from "@/lib/types";
 
 // Components
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
@@ -142,12 +142,12 @@ export default function BoardPage() {
     ) : false);
   
   // Action functions
-  const addTodo = async (text: string, color: PostItColor) => {
-    await addTodoMutation.mutateAsync({ text, color });
+  const addTodo = async (text: string, color: PostItColor, type?: PostItType) => {
+    await addTodoMutation.mutateAsync({ text, color, type });
   };
   
-  const addInboxTodo = async (text: string, color: PostItColor) => {
-    await addInboxTodoMutation.mutateAsync({ text, color });
+  const addInboxTodo = async (text: string, color: PostItColor, type?: PostItType) => {
+    await addInboxTodoMutation.mutateAsync({ text, color, type });
   };
   
   const editTodoText = async (todoId: number, newText: string) => {
@@ -240,6 +240,18 @@ export default function BoardPage() {
   const sortedTodos = useTodoSorting(todos);
   const sortedInboxTodos = useTodoSorting(inboxTodos);
 
+  // 개구리 포스트잇 관련 로직
+  const frogTodos = todos.filter(todo => todo.type === 'frog');
+  const completedFrogTodos = completedTodos.filter(todo => todo.type === 'frog');
+  const canAddFrog = frogTodos.length === 0 && completedFrogTodos.length === 0; // 하루에 하나만 (활성+완료 모두 체크)
+  
+  // 개구리 생성 이후에 완료된 다른 할일만 체크 (개구리가 있을 때만)
+  const hasOtherCompletedTodos = frogTodos.length > 0 && completedTodos.some(todo => 
+    todo.type !== 'frog' && 
+    todo.completedAt && 
+    frogTodos[0].createdAt < todo.completedAt
+  );
+
   const { activeTodo, handleDragStart, handleDragEnd } = useDragAndDrop({
     completeTodo,
     moveToMain,
@@ -323,6 +335,7 @@ export default function BoardPage() {
                       selectedColor={selectedColor}
                       onColorSelect={updateSelectedColor}
                       onAddTodo={addTodo}
+                      canAddFrog={canAddFrog}
                     />
                     {sortedTodos.map((todo) => (
                       <PostItItem
@@ -331,6 +344,7 @@ export default function BoardPage() {
                         onDelete={() => removeTodo(todo.id)}
                         onTogglePin={() => togglePin(todo.id)}
                         onEditText={(newText) => editTodoText(todo.id, newText)}
+                        hasOtherCompletedTodos={hasOtherCompletedTodos && todo.type === 'frog'}
                       />
                     ))}
                   </div>

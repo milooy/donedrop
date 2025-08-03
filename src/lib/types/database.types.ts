@@ -17,7 +17,7 @@ export interface Database {
           id: number;
           user_id: string | null;
           text: string;
-          color: "yellow" | "pink" | "blue";
+          color: "yellow" | "pink" | "blue" | "green";
           status: TodoStatus | null;
           is_pinned: boolean | null;
           pinned_at: string | null;
@@ -30,7 +30,7 @@ export interface Database {
           id?: number;
           user_id?: string | null;
           text: string;
-          color: "yellow" | "pink" | "blue";
+          color: "yellow" | "pink" | "blue" | "green";
           status?: TodoStatus | null;
           is_pinned?: boolean | null;
           pinned_at?: string | null;
@@ -43,7 +43,7 @@ export interface Database {
           id?: number;
           user_id?: string | null;
           text?: string;
-          color?: "yellow" | "pink" | "blue";
+          color?: "yellow" | "pink" | "blue" | "green";
           status?: TodoStatus | null;
           is_pinned?: boolean | null;
           pinned_at?: string | null;
@@ -57,24 +57,24 @@ export interface Database {
       user_settings: {
         Row: {
           user_id: string;
-          selected_color: "yellow" | "pink" | "blue" | null;
-          inbox_selected_color: "yellow" | "pink" | "blue" | null;
+          selected_color: "yellow" | "pink" | "blue" | "green" | null;
+          inbox_selected_color: "yellow" | "pink" | "blue" | "green" | null;
           coins: number | null;
           created_at: string | null;
           updated_at: string | null;
         };
         Insert: {
           user_id: string;
-          selected_color?: "yellow" | "pink" | "blue" | null;
-          inbox_selected_color?: "yellow" | "pink" | "blue" | null;
+          selected_color?: "yellow" | "pink" | "blue" | "green" | null;
+          inbox_selected_color?: "yellow" | "pink" | "blue" | "green" | null;
           coins?: number | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
         Update: {
           user_id?: string;
-          selected_color?: "yellow" | "pink" | "blue" | null;
-          inbox_selected_color?: "yellow" | "pink" | "blue" | null;
+          selected_color?: "yellow" | "pink" | "blue" | "green" | null;
+          inbox_selected_color?: "yellow" | "pink" | "blue" | "green" | null;
           coins?: number | null;
           created_at?: string | null;
           updated_at?: string | null;
@@ -223,7 +223,8 @@ export interface TodoDatabase {
   id: number;
   user_id: string | null;
   text: string;
-  color: "yellow" | "pink" | "blue";
+  color: "yellow" | "pink" | "blue" | "green";
+  type: "normal" | "frog";
   status: TodoStatus;
   is_pinned: boolean;
   pinned_at: string | null;

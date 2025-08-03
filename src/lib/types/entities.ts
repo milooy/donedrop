@@ -1,10 +1,12 @@
-export type PostItColor = "yellow" | "pink" | "blue";
+export type PostItColor = "yellow" | "pink" | "blue" | "green";
+export type PostItType = "normal" | "frog";
 export type TodoStatus = "inbox" | "active" | "completed" | "archived";
 
 export interface Todo {
   id: number;
   text: string;
   color: PostItColor;
+  type: PostItType;
   status: TodoStatus;
   isPinned: boolean;
   pinnedAt?: number;

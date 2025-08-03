@@ -16,7 +16,7 @@ import {
   moveTodoToMain,
   archiveCompletedTodos,
 } from "@/lib/remotes/supabase";
-import type { Todo, PostItColor, TodoStatus } from "@/lib/types";
+import type { Todo, PostItColor, PostItType, TodoStatus } from "@/lib/types";
 
 // Todos query keys
 const todosKeys = createQueryKeys("todos", {
@@ -59,9 +59,11 @@ export const useAddTodo = (user: User | null) => {
     mutationFn: async ({
       text,
       color,
+      type = 'normal',
     }: {
       text: string;
       color: PostItColor;
+      type?: PostItType;
     }) => {
       if (!user) throw new Error("User not authenticated");
 
@@ -69,6 +71,7 @@ export const useAddTodo = (user: User | null) => {
         id: Date.now(),
         text,
         color,
+        type,
         status: "active" as TodoStatus,
         isPinned: false,
         createdAt: Date.now(),
@@ -89,9 +92,11 @@ export const useAddInboxTodo = (user: User | null) => {
     mutationFn: async ({
       text,
       color,
+      type = 'normal',
     }: {
       text: string;
       color: PostItColor;
+      type?: PostItType;
     }) => {
       if (!user) throw new Error("User not authenticated");
 
@@ -99,6 +104,7 @@ export const useAddInboxTodo = (user: User | null) => {
         id: Date.now(),
         text,
         color,
+        type,
         status: "inbox" as TodoStatus,
         isPinned: false,
         createdAt: Date.now(),
