@@ -2,75 +2,38 @@ import { memo, useCallback, useMemo } from "react";
 import { type Todo } from "@/lib/types";
 import { DraggablePostIt } from "@/components/dnd/DraggablePostIt";
 import { EditableText } from "@/components/ui/EditableText";
+import { usePostItActions } from "@/hooks/usePostItActions";
 import {
   COLOR_STYLES,
-  POST_IT_BACKGROUNDS,
-  POST_IT_BORDERS,
-  SHADOW_STYLES,
   FROG_EMOJIS,
 } from "@/lib/constants";
 import { getMainPostItRotation } from "@/lib/utils/rotation";
 import { getDynamicTextStyleWithLinks } from "@/lib/utils/text-sizing";
+import { createPostItStyle, createPinButtonClasses, BUTTON_STYLES } from "./PostItStyles";
 
 interface PostItItemProps {
   todo: Todo;
-  onDelete: () => void;
-  onTogglePin: () => void;
-  onEditText: (newText: string) => void;
   hasOtherCompletedTodos?: boolean;
 }
 
 export const PostItItem = memo<PostItItemProps>(
-  ({
-    todo,
-    onDelete,
-    onTogglePin,
-    onEditText,
-    hasOtherCompletedTodos = false,
-  }) => {
+  ({ todo, hasOtherCompletedTodos = false }) => {
     const rotation = getMainPostItRotation(todo.id);
+    const { handleTogglePin, handleDelete, handleEditText, stopPropagation } = usePostItActions(todo);
 
-    // 텍스트 길이에 따른 동적 스타일 계산 (링크 고려)
     const textStyle = useMemo(
       () => getDynamicTextStyleWithLinks(todo.text),
       [todo.text]
     );
 
-    // 개구리 포스트잇의 상태에 따른 이모지
     const getFrogEmoji = useCallback(() => {
       if (todo.type !== "frog") return null;
       if (hasOtherCompletedTodos) return FROG_EMOJIS.SAD;
       return FROG_EMOJIS.NORMAL;
     }, [todo.type, hasOtherCompletedTodos]);
 
-    const stopPropagation = useCallback((e: React.PointerEvent) => {
-      e.stopPropagation();
-    }, []);
-
-    const postItStyle = {
-      transform: `rotate(${rotation}deg)`,
-      boxShadow: todo.isPinned ? SHADOW_STYLES.PINNED : SHADOW_STYLES.LIGHT,
-      background: POST_IT_BACKGROUNDS[todo.color],
-      border: `2px solid ${POST_IT_BORDERS[todo.color]}`,
-      borderRadius: "2px",
-    };
-
-    const pinButtonClasses = `
-    absolute -top-1 -right-1 w-6 h-6 rounded-full 
-    flex items-center justify-center transition-all cursor-pointer
-    ${
-      todo.isPinned
-        ? "bg-red-500 text-white shadow-md scale-110"
-        : "opacity-0 group-hover:opacity-100 bg-gray-300 text-gray-500 hover:bg-red-400 hover:text-white"
-    }
-  `;
-
-    const deleteButtonClasses = `
-    absolute -bottom-1 -right-1 w-5 h-5 rounded-full 
-    bg-red-500 text-white text-xs flex items-center justify-center 
-    hover:bg-red-600 transition-all cursor-pointer 
-    opacity-0 group-hover:opacity-100
-  `;
+    const postItStyle = createPostItStyle(todo, rotation);
+    const pinButtonClasses = createPinButtonClasses(todo.isPinned);
 
     return (
       <DraggablePostIt todo={todo} from="main">
@@ -88,7 +51,7 @@ export const PostItItem = memo<PostItItemProps>(
           {todo.type !== 'frog' && (
             <button
               className={pinButtonClasses}
-              onClick={onTogglePin}
+              onClick={handleTogglePin}
               onPointerDown={stopPropagation}
               aria-label={todo.isPinned ? "핀 해제" : "핀 고정"}
             >
@@ -109,7 +72,7 @@ export const PostItItem = memo<PostItItemProps>(
               </div>
               <EditableText
                 text={todo.text}
-                onEdit={onEditText}
+                onEdit={handleEditText}
                 className="text-postit text-center"
                 style={{
                   fontSize: textStyle.fontSize,
@@ -121,7 +84,7 @@ export const PostItItem = memo<PostItItemProps>(
           {todo.type !== "frog" && (
             <EditableText
               text={todo.text}
-              onEdit={onEditText}
+              onEdit={handleEditText}
               className="text-postit"
               style={{
                 fontSize: textStyle.fontSize,
@@ -132,8 +95,8 @@ export const PostItItem = memo<PostItItemProps>(
 
           {/* 삭제 버튼 */}
           <button
-            className={deleteButtonClasses}
-            onClick={onDelete}
+            className={BUTTON_STYLES.delete}
+            onClick={handleDelete}
             onPointerDown={stopPropagation}
             aria-label="할일 삭제"
           >

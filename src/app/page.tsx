@@ -1,42 +1,40 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthState } from "@/hooks/useAuthState";
 import LoginScreen from "@/components/LoginScreen";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 export default function Home() {
-  // Auth state 훅
+  const router = useRouter();
   const { user, loading, signInWithGoogle, signInWithGitHub } = useAuthState();
 
-  // 인증된 사용자는 앱 페이지로 리다이렉트
   useEffect(() => {
     if (!loading && user) {
-      window.location.href = "/board";
+      router.push("/board");
     }
-  }, [user, loading]);
+  }, [user, loading, router]);
 
-  // 로딩 중인 경우
   if (loading) {
+    return <LoadingScreen />;
+  }
+
+  if (user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">로딩 중...</p>
+          <p className="text-gray-600">리다이렉트 중...</p>
         </div>
       </div>
     );
   }
 
-  // 인증되지 않은 사용자에게 로그인 화면 표시
-  if (!user) {
-    return (
-      <LoginScreen
-        onSignIn={signInWithGoogle}
-        onGitHubSignIn={signInWithGitHub}
-      />
-    );
-  }
-
-  // 인증된 사용자는 리다이렉트 되므로 빈 화면
-  return null;
+  return (
+    <LoginScreen
+      onSignIn={signInWithGoogle}
+      onGitHubSignIn={signInWithGitHub}
+    />
+  );
 }

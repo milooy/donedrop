@@ -16,7 +16,7 @@ import {
   moveTodoToMain,
   archiveCompletedTodos,
 } from "@/lib/remotes/supabase";
-import type { Todo, PostItColor, PostItType, TodoStatus } from "@/lib/types";
+import type { Todo, PostItColor, PostItType, TodoStatus, TodoUpdate } from "@/lib/types";
 
 // Todos query keys
 const todosKeys = createQueryKeys("todos", {
@@ -24,6 +24,12 @@ const todosKeys = createQueryKeys("todos", {
   inbox: (userId: string) => [userId],
   completed: (userId: string) => [userId],
 });
+
+// 공통 에러 체크 함수
+const requireUser = (user: User | null): string => {
+  if (!user) throw new Error("User not authenticated");
+  return user.id;
+};
 
 export const useTodos = (user: User | null) => {
   return useQuery({
@@ -65,7 +71,7 @@ export const useAddTodo = (user: User | null) => {
       color: PostItColor;
       type?: PostItType;
     }) => {
-      if (!user) throw new Error("User not authenticated");
+      const userId = requireUser(user);
 
       const newTodo = {
         id: Date.now(),
@@ -77,10 +83,40 @@ export const useAddTodo = (user: User | null) => {
         createdAt: Date.now(),
       };
 
-      return insertTodo(newTodo, user.id);
+      return insertTodo(newTodo, userId);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: todosKeys.list._def });
+    onMutate: async ({ text, color, type = 'normal' }) => {
+      const userId = user?.id || '';
+      await queryClient.cancelQueries({ queryKey: todosKeys.list(userId).queryKey });
+      
+      const previousTodos = queryClient.getQueryData<Todo[]>(todosKeys.list(userId).queryKey);
+      
+      const optimisticTodo: Todo = {
+        id: Date.now(),
+        text,
+        color,
+        type,
+        status: "active" as TodoStatus,
+        isPinned: false,
+        createdAt: Date.now(),
+      };
+      
+      queryClient.setQueryData<Todo[]>(
+        todosKeys.list(userId).queryKey,
+        old => old ? [...old, optimisticTodo] : [optimisticTodo]
+      );
+      
+      return { previousTodos };
+    },
+    onError: (err, variables, context) => {
+      const userId = user?.id || '';
+      if (context?.previousTodos) {
+        queryClient.setQueryData(todosKeys.list(userId).queryKey, context.previousTodos);
+      }
+    },
+    onSettled: () => {
+      const userId = user?.id || '';
+      queryClient.invalidateQueries({ queryKey: todosKeys.list(userId).queryKey });
     },
   });
 };
@@ -98,7 +134,7 @@ export const useAddInboxTodo = (user: User | null) => {
       color: PostItColor;
       type?: PostItType;
     }) => {
-      if (!user) throw new Error("User not authenticated");
+      const userId = requireUser(user);
 
       const newTodo = {
         id: Date.now(),
@@ -110,10 +146,40 @@ export const useAddInboxTodo = (user: User | null) => {
         createdAt: Date.now(),
       };
 
-      return insertInboxTodo(newTodo, user.id);
+      return insertInboxTodo(newTodo, userId);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: todosKeys.inbox._def });
+    onMutate: async ({ text, color, type = 'normal' }) => {
+      const userId = user?.id || '';
+      await queryClient.cancelQueries({ queryKey: todosKeys.inbox(userId).queryKey });
+      
+      const previousTodos = queryClient.getQueryData<Todo[]>(todosKeys.inbox(userId).queryKey);
+      
+      const optimisticTodo: Todo = {
+        id: Date.now(),
+        text,
+        color,
+        type,
+        status: "inbox" as TodoStatus,
+        isPinned: false,
+        createdAt: Date.now(),
+      };
+      
+      queryClient.setQueryData<Todo[]>(
+        todosKeys.inbox(userId).queryKey,
+        old => old ? [...old, optimisticTodo] : [optimisticTodo]
+      );
+      
+      return { previousTodos };
+    },
+    onError: (err, variables, context) => {
+      const userId = user?.id || '';
+      if (context?.previousTodos) {
+        queryClient.setQueryData(todosKeys.inbox(userId).queryKey, context.previousTodos);
+      }
+    },
+    onSettled: () => {
+      const userId = user?.id || '';
+      queryClient.invalidateQueries({ queryKey: todosKeys.inbox(userId).queryKey });
     },
   });
 };
@@ -127,13 +193,35 @@ export const useUpdateTodo = (user: User | null) => {
       updates,
     }: {
       todoId: number;
-      updates: Partial<Todo>;
+      updates: TodoUpdate;
     }) => {
-      if (!user) throw new Error("User not authenticated");
-      return updateTodo(todoId, updates, user.id);
+      const userId = requireUser(user);
+      return updateTodo(todoId, updates, userId);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: todosKeys.list._def });
+    onMutate: async ({ todoId, updates }) => {
+      const userId = user?.id || '';
+      await queryClient.cancelQueries({ queryKey: todosKeys.list(userId).queryKey });
+      
+      const previousTodos = queryClient.getQueryData<Todo[]>(todosKeys.list(userId).queryKey);
+      
+      queryClient.setQueryData<Todo[]>(
+        todosKeys.list(userId).queryKey,
+        old => old?.map(todo => 
+          todo.id === todoId ? { ...todo, ...updates } : todo
+        ) || []
+      );
+      
+      return { previousTodos };
+    },
+    onError: (err, variables, context) => {
+      const userId = user?.id || '';
+      if (context?.previousTodos) {
+        queryClient.setQueryData(todosKeys.list(userId).queryKey, context.previousTodos);
+      }
+    },
+    onSettled: () => {
+      const userId = user?.id || '';
+      queryClient.invalidateQueries({ queryKey: todosKeys.list(userId).queryKey });
     },
   });
 };
@@ -147,13 +235,35 @@ export const useUpdateInboxTodo = (user: User | null) => {
       updates,
     }: {
       todoId: number;
-      updates: Partial<Todo>;
+      updates: TodoUpdate;
     }) => {
-      if (!user) throw new Error("User not authenticated");
-      return updateInboxTodo(todoId, updates, user.id);
+      const userId = requireUser(user);
+      return updateInboxTodo(todoId, updates, userId);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: todosKeys.inbox._def });
+    onMutate: async ({ todoId, updates }) => {
+      const userId = user?.id || '';
+      await queryClient.cancelQueries({ queryKey: todosKeys.inbox(userId).queryKey });
+      
+      const previousTodos = queryClient.getQueryData<Todo[]>(todosKeys.inbox(userId).queryKey);
+      
+      queryClient.setQueryData<Todo[]>(
+        todosKeys.inbox(userId).queryKey,
+        old => old?.map(todo => 
+          todo.id === todoId ? { ...todo, ...updates } : todo
+        ) || []
+      );
+      
+      return { previousTodos };
+    },
+    onError: (err, variables, context) => {
+      const userId = user?.id || '';
+      if (context?.previousTodos) {
+        queryClient.setQueryData(todosKeys.inbox(userId).queryKey, context.previousTodos);
+      }
+    },
+    onSettled: () => {
+      const userId = user?.id || '';
+      queryClient.invalidateQueries({ queryKey: todosKeys.inbox(userId).queryKey });
     },
   });
 };
@@ -163,11 +273,31 @@ export const useDeleteTodo = (user: User | null) => {
 
   return useMutation({
     mutationFn: async (todoId: number) => {
-      if (!user) throw new Error("User not authenticated");
-      return deleteTodo(todoId, user.id);
+      const userId = requireUser(user);
+      return deleteTodo(todoId, userId);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: todosKeys.list._def });
+    onMutate: async (todoId) => {
+      const userId = user?.id || '';
+      await queryClient.cancelQueries({ queryKey: todosKeys.list(userId).queryKey });
+      
+      const previousTodos = queryClient.getQueryData<Todo[]>(todosKeys.list(userId).queryKey);
+      
+      queryClient.setQueryData<Todo[]>(
+        todosKeys.list(userId).queryKey,
+        old => old?.filter(todo => todo.id !== todoId) || []
+      );
+      
+      return { previousTodos };
+    },
+    onError: (err, todoId, context) => {
+      const userId = user?.id || '';
+      if (context?.previousTodos) {
+        queryClient.setQueryData(todosKeys.list(userId).queryKey, context.previousTodos);
+      }
+    },
+    onSettled: () => {
+      const userId = user?.id || '';
+      queryClient.invalidateQueries({ queryKey: todosKeys.list(userId).queryKey });
     },
   });
 };
@@ -177,11 +307,31 @@ export const useDeleteInboxTodo = (user: User | null) => {
 
   return useMutation({
     mutationFn: async (todoId: number) => {
-      if (!user) throw new Error("User not authenticated");
-      return deleteInboxTodo(todoId, user.id);
+      const userId = requireUser(user);
+      return deleteInboxTodo(todoId, userId);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: todosKeys.inbox._def });
+    onMutate: async (todoId) => {
+      const userId = user?.id || '';
+      await queryClient.cancelQueries({ queryKey: todosKeys.inbox(userId).queryKey });
+      
+      const previousTodos = queryClient.getQueryData<Todo[]>(todosKeys.inbox(userId).queryKey);
+      
+      queryClient.setQueryData<Todo[]>(
+        todosKeys.inbox(userId).queryKey,
+        old => old?.filter(todo => todo.id !== todoId) || []
+      );
+      
+      return { previousTodos };
+    },
+    onError: (err, todoId, context) => {
+      const userId = user?.id || '';
+      if (context?.previousTodos) {
+        queryClient.setQueryData(todosKeys.inbox(userId).queryKey, context.previousTodos);
+      }
+    },
+    onSettled: () => {
+      const userId = user?.id || '';
+      queryClient.invalidateQueries({ queryKey: todosKeys.inbox(userId).queryKey });
     },
   });
 };
@@ -191,13 +341,14 @@ export const useCompleteTodo = (user: User | null) => {
 
   return useMutation({
     mutationFn: async (todoId: number) => {
-      if (!user) throw new Error("User not authenticated");
-      return moveTodoToCompleted(todoId, user.id);
+      const userId = requireUser(user);
+      return moveTodoToCompleted(todoId, userId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: todosKeys.list._def });
-      queryClient.invalidateQueries({ queryKey: todosKeys.inbox._def });
-      queryClient.invalidateQueries({ queryKey: todosKeys.completed._def });
+      const userId = user?.id || '';
+      queryClient.invalidateQueries({ queryKey: todosKeys.list(userId).queryKey });
+      queryClient.invalidateQueries({ queryKey: todosKeys.inbox(userId).queryKey });
+      queryClient.invalidateQueries({ queryKey: todosKeys.completed(userId).queryKey });
     },
   });
 };
@@ -207,12 +358,13 @@ export const useMoveToInbox = (user: User | null) => {
 
   return useMutation({
     mutationFn: async (todoId: number) => {
-      if (!user) throw new Error("User not authenticated");
-      return moveTodoToInbox(todoId, user.id);
+      const userId = requireUser(user);
+      return moveTodoToInbox(todoId, userId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: todosKeys.list._def });
-      queryClient.invalidateQueries({ queryKey: todosKeys.inbox._def });
+      const userId = user?.id || '';
+      queryClient.invalidateQueries({ queryKey: todosKeys.list(userId).queryKey });
+      queryClient.invalidateQueries({ queryKey: todosKeys.inbox(userId).queryKey });
     },
   });
 };
@@ -222,12 +374,13 @@ export const useMoveToMain = (user: User | null) => {
 
   return useMutation({
     mutationFn: async (todoId: number) => {
-      if (!user) throw new Error("User not authenticated");
-      return moveTodoToMain(todoId, user.id);
+      const userId = requireUser(user);
+      return moveTodoToMain(todoId, userId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: todosKeys.list._def });
-      queryClient.invalidateQueries({ queryKey: todosKeys.inbox._def });
+      const userId = user?.id || '';
+      queryClient.invalidateQueries({ queryKey: todosKeys.list(userId).queryKey });
+      queryClient.invalidateQueries({ queryKey: todosKeys.inbox(userId).queryKey });
     },
   });
 };
@@ -237,11 +390,12 @@ export const useArchiveCompletedTodos = (user: User | null) => {
 
   return useMutation({
     mutationFn: async () => {
-      if (!user) throw new Error("User not authenticated");
-      return archiveCompletedTodos(user.id);
+      const userId = requireUser(user);
+      return archiveCompletedTodos(userId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: todosKeys.completed._def });
+      const userId = user?.id || '';
+      queryClient.invalidateQueries({ queryKey: todosKeys.completed(userId).queryKey });
     },
   });
 };

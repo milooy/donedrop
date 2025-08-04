@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -21,7 +20,7 @@ export default function RootLayout({
         className="antialiased font-ownglyph"
       >
         <QueryProvider>
-          <AuthProvider>{children}</AuthProvider>
+          {children}
         </QueryProvider>
         <Analytics />
       </body>

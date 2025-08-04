@@ -21,9 +21,7 @@ import {
   useCompletedTodos,
   useAddTodo,
   useAddInboxTodo,
-  useUpdateTodo,
   useUpdateInboxTodo,
-  useDeleteTodo,
   useDeleteInboxTodo,
   useCompleteTodo,
   useMoveToInbox,
@@ -91,9 +89,7 @@ export default function BoardPage() {
   // Mutation hooks
   const addTodoMutation = useAddTodo(user);
   const addInboxTodoMutation = useAddInboxTodo(user);
-  const updateTodoMutation = useUpdateTodo(user);
   const updateInboxTodoMutation = useUpdateInboxTodo(user);
-  const deleteTodoMutation = useDeleteTodo(user);
   const deleteInboxTodoMutation = useDeleteInboxTodo(user);
   const completeTodoMutation = useCompleteTodo(user);
   const moveToInboxMutation = useMoveToInbox(user);
@@ -151,24 +147,8 @@ export default function BoardPage() {
     await addInboxTodoMutation.mutateAsync({ text, color, type });
   };
   
-  const editTodoText = async (todoId: number, newText: string) => {
-    await updateTodoMutation.mutateAsync({ todoId, updates: { text: newText } });
-  };
-  
   const editInboxTodoText = async (todoId: number, newText: string) => {
     await updateInboxTodoMutation.mutateAsync({ todoId, updates: { text: newText } });
-  };
-  
-  const togglePin = async (todoId: number) => {
-    const todo = todos.find(t => t.id === todoId);
-    if (!todo) return;
-    
-    const updates = {
-      isPinned: !todo.isPinned,
-      pinnedAt: !todo.isPinned ? Date.now() : undefined,
-    };
-    
-    await updateTodoMutation.mutateAsync({ todoId, updates });
   };
   
   const toggleInboxPin = async (todoId: number) => {
@@ -181,10 +161,6 @@ export default function BoardPage() {
     };
     
     await updateInboxTodoMutation.mutateAsync({ todoId, updates });
-  };
-  
-  const removeTodo = async (todoId: number) => {
-    await deleteTodoMutation.mutateAsync(todoId);
   };
   
   const removeInboxTodo = async (todoId: number) => {
@@ -349,9 +325,6 @@ export default function BoardPage() {
                       <PostItItem
                         key={todo.id}
                         todo={todo}
-                        onDelete={() => removeTodo(todo.id)}
-                        onTogglePin={() => togglePin(todo.id)}
-                        onEditText={(newText) => editTodoText(todo.id, newText)}
                         hasOtherCompletedTodos={hasOtherCompletedTodos && todo.type === 'frog'}
                       />
                     ))}
