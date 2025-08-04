@@ -235,10 +235,9 @@ export default function BoardPage() {
     setShowRitualCompletionModal(false);
   };
 
-  // 뛰어다니는 개구리 클릭 핸들러 (추후 개구리 모드 전환용)
+  // 뛰어다니는 개구리 클릭 핸들러 - 개구리 모드 전환
   const handleFrogClick = () => {
-    console.log('🐸 뛰어다니는 개구리를 클릭했습니다!');
-    // TODO: 추후 개구리 포스트잇 모드로 전환하는 로직 추가
+    setIsFrogModeActive(true);
   };
 
   // Custom hooks
@@ -273,6 +272,7 @@ export default function BoardPage() {
 
   // Local state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFrogModeActive, setIsFrogModeActive] = useState(false);
 
   // Loading state
   if (isLoading || !isAuthenticated) {
@@ -342,7 +342,8 @@ export default function BoardPage() {
                       selectedColor={selectedColor}
                       onColorSelect={updateSelectedColor}
                       onAddTodo={addTodo}
-                      canAddFrog={canAddFrog}
+                      isFrogModeActive={isFrogModeActive}
+                      onFrogModeComplete={() => setIsFrogModeActive(false)}
                     />
                     {sortedTodos.map((todo) => (
                       <PostItItem

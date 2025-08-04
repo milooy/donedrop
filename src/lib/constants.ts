@@ -1,7 +1,12 @@
 import { type PostItColor } from "@/lib/types";
 
 // 색상 관련 상수
-export const POST_IT_COLORS: PostItColor[] = ["yellow", "pink", "blue", "green"];
+export const POST_IT_COLORS: PostItColor[] = [
+  "yellow",
+  "pink",
+  "blue",
+  "green",
+];
 
 export const COLOR_STYLES = {
   yellow: "border-yellow-300 bg-yellow-100",
@@ -56,6 +61,6 @@ export const SHADOW_STYLES = {
 // 개구리 포스트잇 관련
 export const FROG_EMOJIS = {
   NORMAL: "🐸",
-  SAD: "😭🐸", // 울고 있는 개구리 (더 명확하게)
-  CELEBRATE: "🎉",
+  SAD: "😭🐸",
+  CELEBRATE: "🐸",
 } as const;
