@@ -65,6 +65,7 @@ import { CompletedTodosModal } from "@/components/modals/CompletedTodosModal";
 import { CoinRewardModal } from "@/components/modals/CoinRewardModal";
 import { RitualCompletionModal } from "@/components/modals/RitualCompletionModal";
 import { RitualWidget } from "@/components/ritual/RitualWidget";
+import { BouncingFrog } from "@/components/animations/BouncingFrog";
 
 // Styles
 import {
@@ -232,6 +233,12 @@ export default function BoardPage() {
   
   const claimRitualReward = () => {
     setShowRitualCompletionModal(false);
+  };
+
+  // 뛰어다니는 개구리 클릭 핸들러 (추후 개구리 모드 전환용)
+  const handleFrogClick = () => {
+    console.log('🐸 뛰어다니는 개구리를 클릭했습니다!');
+    // TODO: 추후 개구리 포스트잇 모드로 전환하는 로직 추가
   };
 
   // Custom hooks
@@ -412,6 +419,12 @@ export default function BoardPage() {
             onClose={setShowRitualCompletionModal}
             onClaimReward={claimRitualReward}
             completedRituals={completedRitualsForModal}
+          />
+
+          {/* 뛰어다니는 개구리 - 개구리 포스트잇이 없을 때만 표시 */}
+          <BouncingFrog
+            onFrogClick={handleFrogClick}
+            isActive={canAddFrog && isClient}
           />
         </div>
       </DndContext>
